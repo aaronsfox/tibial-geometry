@@ -1,0 +1,9 @@
+aligned_meshes/102480-tibia-cortical_rbfreg_rigidreg.ply
+aligned_meshes/102924-tibia-cortical_rbfreg_rigidreg.ply
+aligned_meshes/107215-tibia-cortical_rbfreg_rigidreg.ply
+aligned_meshes/112802-tibia-cortical_rbfreg_rigidreg.ply
+aligned_meshes/132433-tibia-cortical_rbfreg_rigidreg.ply
+aligned_meshes/134434-tibia-cortical_rbfreg_rigidreg.ply
+aligned_meshes/136283-tibia-cortical_rbfreg_rigidreg.ply
+aligned_meshes/140368-tibia-cortical_rbfreg_rigidreg.ply
+aligned_meshes/140694-tibia-cortical_rbfreg_rigidreg.ply
