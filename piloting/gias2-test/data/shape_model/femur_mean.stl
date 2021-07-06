@@ -1,4 +1,4 @@
-solid ascii
+solid Visualization Toolkit generated SLA File
  facet normal -0.085466 -0.211548 0.973624
   outer loop
    vertex 115.975 -4.6953 1245.44
@@ -15686,7 +15686,7 @@ solid ascii
    vertex 167.289 31.2424 1221.6
   endloop
  endfacet
- facet normal -0.836505 -0.547959 2.15008e-005
+ facet normal -0.836505 -0.547959 2.15008e-05
   outer loop
    vertex 148.554 30.4729 1220.43
    vertex 147.937 31.4146 1218.22
@@ -52940,7 +52940,7 @@ solid ascii
    vertex 132.132 16.6718 1133.59
   endloop
  endfacet
- facet normal 0.9966 -4.99289e-005 -0.0823902
+ facet normal 0.9966 -4.99289e-05 -0.0823902
   outer loop
    vertex 162.37 18.9826 1134.79
    vertex 162.177 17.5981 1132.47
@@ -75858,7 +75858,7 @@ solid ascii
    vertex 154.157 -3.73723 1041.36
   endloop
  endfacet
- facet normal 0.866975 -0.498352 5.83828e-005
+ facet normal 0.866975 -0.498352 5.83828e-05
   outer loop
    vertex 154.157 -3.73723 1041.36
    vertex 154.719 -2.75963 1038.98
@@ -81283,7 +81283,7 @@ solid ascii
    vertex 141.708 -11.8169 1017.85
   endloop
  endfacet
- facet normal 5.51106e-005 -0.999314 0.0370304
+ facet normal 5.51106e-05 -0.999314 0.0370304
   outer loop
    vertex 139.672 -12.0678 1017.87
    vertex 137.708 -12.0662 1017.91
@@ -95920,7 +95920,7 @@ solid ascii
    vertex 142.622 11.4101 956.554
   endloop
  endfacet
- facet normal 0.640491 0.767965 -9.99401e-005
+ facet normal 0.640491 0.767965 -9.99401e-05
   outer loop
    vertex 144.066 10.2058 958.682
    vertex 142.622 11.4101 956.554
@@ -103837,7 +103837,7 @@ solid ascii
    vertex 130.171 -14.8443 926.956
   endloop
  endfacet
- facet normal 0.25186 -0.967764 4.46259e-005
+ facet normal 0.25186 -0.967764 4.46259e-05
   outer loop
    vertex 136.436 -13.9255 926.674
    vertex 134.023 -14.5535 926.828
@@ -122149,7 +122149,7 @@ solid ascii
    vertex 111.215 -13.2044 863.931
   endloop
  endfacet
- facet normal 0.0506127 -0.998718 1.4329e-005
+ facet normal 0.0506127 -0.998718 1.4329e-05
   outer loop
    vertex 117.095 -13.7789 863.919
    vertex 119.153 -13.6746 863.848
@@ -139817,7 +139817,7 @@ solid ascii
    vertex 120.035 -13.5492 838.178
   endloop
  endfacet
- facet normal 0.334406 -0.942429 9.41222e-006
+ facet normal 0.334406 -0.942429 9.41222e-06
   outer loop
    vertex 120.217 -13.4849 835.919
    vertex 120.035 -13.5492 838.178
