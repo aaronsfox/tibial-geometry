@@ -1,5 +1,3 @@
 segmentations/102480-tibia-cortical.stl
 segmentations/102924-tibia-cortical.stl
-segmentations/107215-tibia-cortical.stl
-segmentations/112802-tibia-cortical.stl
-segmentations/116070-tibia-cortical.stl
+segmentations/103559-tibia-cortical.stl

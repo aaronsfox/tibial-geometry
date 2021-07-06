@@ -1,5 +1,3 @@
 fitted_meshes/102480-tibia-cortical_rbfreg.stl
 fitted_meshes/102924-tibia-cortical_rbfreg.stl
-fitted_meshes/107215-tibia-cortical_rbfreg.stl
-fitted_meshes/112802-tibia-cortical_rbfreg.stl
-fitted_meshes/116070-tibia-cortical_rbfreg.stl
+fitted_meshes/103559-tibia-cortical_rbfreg.stl
