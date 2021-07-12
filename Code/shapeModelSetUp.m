@@ -1,7 +1,7 @@
 %% 
 
 % Function to take original segmentations, align to global coordinate
-% system and then output to the starting shape el folder.
+% system and then output to the starting shape model folder.
 
 %% Set-up
 
@@ -18,26 +18,16 @@ for ff = 3:length(f)
 end
 clear ff
 
-%Set options for smoothing
-nSteps = 50;
-nSub = 1;
-cPar.n = nSub;
-cPar.Method = 'LAP'; %laplacian smoothing
-
 %Set options for remeshing
 % % % optionStruct.pointSpacing = 2.5; %Set desired point spacing
 optionStruct.nb_pts = 10000; %Set desired number of points
-% % % optionStruct.anisotropy = 2;
+% % % optionStruct.anisotropy = 1;
 optionStruct.disp_on = 0; % Turn off command window text display
-% % % optionStruct.pre.max_hole_area = 1000; %Max hole area for pre-processing step
-% % % optionStruct.pre.max_hole_edges = 1000; %Max number of hole edges for pre-processing step
-% % % optionStruct.post.max_hole_area = 1000; %Max hole area for post-processing step
-% % % optionStruct.post.max_hole_edges = 1000; %Max number of hole edges for post-processing step
 
 %% Extract and process surfaces
 
 %Loop through cases
-for ii = 1:3%%%length(caseID)
+for ii = 1:length(caseID)
     
     %Navigate to case ID
     cd(caseID{ii});
@@ -54,15 +44,14 @@ for ii = 1:3%%%length(caseID)
 
     %Try to remesh and continue with case if possible
     try
-        
-% % %         %Smooth mesh prior to uniform remesh
-% % %         [tibiaV] = patchSmooth(tibiaF,tibiaV,[],cPar);
-        
-% % %         %Remesh using triRemesh to reduce complexity
-% % %         [tibiaF,tibiaV] = triRemeshLabel(tibiaF,tibiaV,1.5);
 
         %Remesh using ggremesh to reduce complexity
         [tibiaF,tibiaV] = ggremesh(tibiaF, tibiaV, optionStruct);
+        
+        %Check for matching point number and display if not
+        if length(tibiaV) ~= optionStruct.nb_pts
+            fprintf('Number of vertices does not match requested for case %s\n',caseNo);
+        end
         
         %Check if tibial landmarks are available and align segment if so
         if isfile('LC.txt') && isfile('LM.txt') && isfile('MC.txt') && isfile('MM.txt')
@@ -234,7 +223,7 @@ for ii = 1:3%%%length(caseID)
     end
     
     %Clear variables for re-loop
-    clearvars -except caseID homeDir ii optionStruct pcalist rbfreg rigidreg nSteps nSub cPar
+    clearvars -except caseID homeDir ii optionStruct pcalist rbfreg rigidreg
     
     %Navigate back to segmentation directory
     cd('..');
