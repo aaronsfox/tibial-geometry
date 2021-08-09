@@ -20,14 +20,23 @@ clear ff
 
 %Set options for remeshing
 % % % optionStruct.pointSpacing = 2.5; %Set desired point spacing
-optionStruct.nb_pts = 10000; %Set desired number of points
+optionStruct_tib.nb_pts = 10000; %Set desired number of points
 % % % optionStruct.anisotropy = 1;
-optionStruct.disp_on = 0; % Turn off command window text display
+optionStruct_tib.disp_on = 0; % Turn off command window text display
+optionStruct_fib.nb_pts = 2500; %Set desired number of points
+optionStruct_fib.disp_on = 0; % Turn off command window text display
 
 %% Extract and process surfaces
 
 %Loop through cases
-for ii = 1:length(caseID)
+% for ii = 1:length(caseID)
+caseID = [{'case-102480'};
+    {'case-102924'};
+    {'case-103559'};
+    {'case-103862'};
+    {'case-107215'};
+    {'case-107813'}];
+for ii = 1:length(caseID) %%%%%%%%%% FIX this up after testing!!!!!
     
     %Navigate to case ID
     cd(caseID{ii});
@@ -41,16 +50,30 @@ for ii = 1:length(caseID)
     tibiaF = tibiaSTLstruct.solidFaces{1}; %Faces
     tibiaV = tibiaSTLstruct.solidVertices{1}; %Vertices
     [tibiaF,tibiaV] = mergeVertices(tibiaF,tibiaV);
+    
+    %Load the fibula
+    [fibulaSTLstruct] = import_STL([caseNo,'-fibula.stl']);
+    fibulaF = fibulaSTLstruct.solidFaces{1}; %Faces
+    fibulaV = fibulaSTLstruct.solidVertices{1}; %Vertices
+    [fibulaF,fibulaV] = mergeVertices(fibulaF,fibulaV);
 
     %Try to remesh and continue with case if possible
     try
 
         %Remesh using ggremesh to reduce complexity
-        [tibiaF,tibiaV] = ggremesh(tibiaF, tibiaV, optionStruct);
+        [tibiaF,tibiaV] = ggremesh(tibiaF, tibiaV, optionStruct_tib);
         
         %Check for matching point number and display if not
-        if length(tibiaV) ~= optionStruct.nb_pts
-            fprintf('Number of vertices does not match requested for case %s\n',caseNo);
+        if length(tibiaV) ~= optionStruct_tib.nb_pts
+            fprintf('Number of tibia vertices does not match requested for case %s\n',caseNo);
+        end
+        
+        %Remesh using ggremesh to reduce complexity
+        [fibulaF,fibulaV] = ggremesh(fibulaF,fibulaV, optionStruct_fib);
+        
+        %Check for matching point number and display if not
+        if length(fibulaV) ~= optionStruct_fib.nb_pts
+            fprintf('Number of fibula vertices does not match requested for case %s\n',caseNo);
         end
         
         %Check if tibial landmarks are available and align segment if so
@@ -87,6 +110,10 @@ for ii = 1:length(caseID)
                 tibiaV(pp,:) = transformPoint3d(tibiaV(pp,:),globalTransform);    
             end
             clear pp
+            for pp = 1:length(fibulaV)
+                fibulaV(pp,:) = transformPoint3d(fibulaV(pp,:),globalTransform);    
+            end
+            clear pp
 
             %Transform landmarks
             currLandmarks = fieldnames(landmarks);
@@ -118,6 +145,10 @@ for ii = 1:length(caseID)
                 tibiaV(pp,:) = transformPoint3d(tibiaV(pp,:),rotZ);    
             end
             clear pp
+            for pp = 1:length(fibulaV)
+                fibulaV(pp,:) = transformPoint3d(fibulaV(pp,:),rotZ);    
+            end
+            clear pp
 
             %Transform landmarks
             currLandmarks = fieldnames(landmarks);
@@ -132,6 +163,10 @@ for ii = 1:length(caseID)
             %Transform surfaces
             for pp = 1:length(tibiaV)
                 tibiaV(pp,:) = transformPoint3d(tibiaV(pp,:),transMatrix);    
+            end
+            clear pp
+            for pp = 1:length(fibulaV)
+                fibulaV(pp,:) = transformPoint3d(fibulaV(pp,:),transMatrix);    
             end
             clear pp
 
@@ -154,6 +189,10 @@ for ii = 1:length(caseID)
                 tibiaV(pp,:) = transformPoint3d(tibiaV(pp,:),createRotationOz(deg2rad(-90)));    
             end
             clear pp
+            for pp = 1:length(fibulaV)
+                fibulaV(pp,:) = transformPoint3d(fibulaV(pp,:),createRotationOz(deg2rad(-90)));    
+            end
+            clear pp
 
             %Transform landmarks
             currLandmarks = fieldnames(landmarks);
@@ -169,6 +208,10 @@ for ii = 1:length(caseID)
                 tibiaV(pp,:) = transformPoint3d(tibiaV(pp,:),createRotationOy(deg2rad(-90)));    
             end
             clear pp
+            for pp = 1:length(fibulaV)
+                fibulaV(pp,:) = transformPoint3d(fibulaV(pp,:),createRotationOy(deg2rad(-90)));    
+            end
+            clear pp
 
             %Transform landmarks
             currLandmarks = fieldnames(landmarks);
@@ -180,8 +223,9 @@ for ii = 1:length(caseID)
 % % %             %Visualise
 % % %             h = cFigure; hold on
 % % %             gpatch(tibiaF,tibiaV,'gw','k');
+% % %             gpatch(fibulaF,fibulaV,'bw','k');
 % % %             axisGeom; camlight headlight
-% % %             title('Imported and Aligned Tibia');
+% % %             title('Imported and Aligned Tibia-Fibula');
 % % % 
 % % %             %Save figure
 % % %             saveas(h,'alignedForShapeModel.png')
@@ -197,20 +241,25 @@ for ii = 1:length(caseID)
         end
 
         %Export the STL
+        
+        %Merge objects into one surface
+        mergedSurfaceV = [tibiaV; fibulaV];
+        mergedSurfaceF = [tibiaF; fibulaF+length(tibiaV)];
 
         %Create the stl structure    
-        stlStruct.solidNames = {['tibia-',caseNo]}; %names of parts
-        stlStruct.solidVertices = {tibiaV}; %Vertices
-        stlStruct.solidFaces = {tibiaF}; %Faces
+        stlStruct.solidNames = {['tibia-fibula-',caseNo]}; %names of parts
+        stlStruct.solidVertices = {mergedSurfaceV}; %Vertices
+        stlStruct.solidFaces = {mergedSurfaceF}; %Faces
         stlStruct.solidNormals={[]};
 
         %Export the stl
-        export_STL_txt(['..\..\ShapeModel\segmentations\',caseNo,'-tibia-cortical.stl'], stlStruct);
+% % %         export_STL_txt(['..\..\ShapeModel\segmentations\',caseNo,'-tibia-cortical.stl'], stlStruct);
+        export_STL_txt(['..\..\ShapeModel_TibFib\segmentations\',caseNo,'-tibia-fibula.stl'], stlStruct);
         
         %Write the case details to a string array for the pca text files
-        rbfreg{ii,1} = ['segmentations/',caseNo,'-tibia-cortical.stl'];
-        rigidreg{ii,1} = ['fitted_meshes/',caseNo,'-tibia-cortical_rbfreg.stl'];
-        pcalist{ii,1} = ['aligned_meshes/',caseNo,'-tibia-cortical_rbfreg_rigidreg.stl'];
+        rbfreg{ii,1} = ['segmentations/',caseNo,'-tibia-fibula.stl'];
+        rigidreg{ii,1} = ['fitted_meshes/',caseNo,'-tibia-fibula_rbfreg.stl'];
+        pcalist{ii,1} = ['aligned_meshes/',caseNo,'-tibia-fibula_rbfreg_rigidreg.stl'];
 
         %Disp progress
         disp(['Case ',caseNo,' successfully remeshed and aligned.']);
@@ -223,7 +272,7 @@ for ii = 1:length(caseID)
     end
     
     %Clear variables for re-loop
-    clearvars -except caseID homeDir ii optionStruct pcalist rbfreg rigidreg
+    clearvars -except caseID homeDir ii optionStruct_tib optionStruct_fib pcalist rbfreg rigidreg
     
     %Navigate back to segmentation directory
     cd('..');
@@ -235,21 +284,21 @@ clear ii
 
 %Start by removing any old list files
 %Remove rbfreg file if present
-if isfile('..\ShapeModel\rbfreg_list.txt')
-    delete('..\ShapeModel\rbfreg_list.txt')
+if isfile('..\ShapeModel_TibFib\rbfreg_list.txt')
+    delete('..\ShapeModel_TibFib\rbfreg_list.txt')
 end
 %Remove rigidreg if present
-if isfile('..\ShapeModel\rigidreg_list.txt')
-    delete('..\ShapeModel\rigidreg_list.txt')
+if isfile('..\ShapeModel_TibFib\rigidreg_list.txt')
+    delete('..\ShapeModel_TibFib\rigidreg_list.txt')
 end
 %Remove pca list if present
-if isfile('..\ShapeModel\pca_list.txt')
-    delete('..\ShapeModel\pca_list.txt')
+if isfile('..\ShapeModel_TibFib\pca_list.txt')
+    delete('..\ShapeModel_TibFib\pca_list.txt')
 end
 
 %Write the created list sets to file
 %rbfreg
-fid = fopen('..\ShapeModel\rbfreg_list.txt','wt');
+fid = fopen('..\ShapeModel_TibFib\rbfreg_list.txt','wt');
 for ii = 1:length(rbfreg)
     %Check if current case was successful
     if ~isempty(rbfreg{ii,1})
@@ -263,7 +312,7 @@ for ii = 1:length(rbfreg)
 end
 fclose(fid);
 %rigidreg
-fid = fopen('..\ShapeModel\rigidreg_list.txt','wt');
+fid = fopen('..\ShapeModel_TibFib\rigidreg_list.txt','wt');
 for ii = 1:length(rigidreg)
     %Check if current case was successful
     if ~isempty(rigidreg{ii,1})
@@ -277,7 +326,7 @@ for ii = 1:length(rigidreg)
 end
 fclose(fid);
 %pca
-fid = fopen('..\ShapeModel\pca_list.txt','wt');
+fid = fopen('..\ShapeModel_TibFib\pca_list.txt','wt');
 for ii = 1:length(pcalist)
     %Check if current case was successful
     if ~isempty(pcalist{ii,1})
