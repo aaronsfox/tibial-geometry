@@ -327,7 +327,7 @@ fibulaMeshCE = meshOutputF.elementMaterialID;
 %This is based on the closest point on the tibial surface to the
 %mid-malleoli point
 
-%Find the closest node on the tibia mesh to the mean of the plateau
+%Find the closest node on the tibia mesh to the inter-malleoli point
 jointDist = distancePoints3d(tibiaV, landmarks.IM);
 jointPoint = tibiaV(find(jointDist == min(jointDist)),:);
 
@@ -341,6 +341,35 @@ jointPointID = find(tibiaMeshV(:,1) == jointPoint(:,1) & ...
 cFigure; hold on;
 gpatch(tibiaMeshFb,tibiaMeshV,'w','none',1);
 plotV(jointPoint,'r.','markerSize',15)
+axisGeom; camlight headlight;
+
+%% Identify malleoli points on tibia surface to constrain
+
+%Find the closest node on the tibia mesh to the malleoli
+%MM
+mmDist = distancePoints3d(tibiaV, landmarks.MM);
+mmPoint = tibiaV(find(mmDist == min(mmDist)),:);
+%LM
+lmDist = distancePoints3d(tibiaV, landmarks.LM);
+lmPoint = tibiaV(find(lmDist == min(lmDist)),:);
+
+%Find index in tibia surface that corresponds to points
+%MM
+logicMedMalNodes = ismember(tibiaMeshV,mmPoint,'rows');
+logicMedMalFaces = all(logicMedMalNodes(tibiaMeshFb),2);
+mmPointID = find(tibiaMeshV(:,1) == mmPoint(:,1) & ...
+    tibiaMeshV(:,2) == mmPoint(:,2) & tibiaMeshV(:,3) == mmPoint(:,3));
+%LM
+logicLatMalNodes = ismember(tibiaMeshV,lmPoint,'rows');
+logicLatMalFaces = all(logicLatMalNodes(tibiaMeshFb),2);
+lmPointID = find(tibiaMeshV(:,1) == lmPoint(:,1) & ...
+    tibiaMeshV(:,2) == lmPoint(:,2) & tibiaMeshV(:,3) == lmPoint(:,3));
+
+%Visualise to confirm
+cFigure; hold on;
+gpatch(tibiaMeshFb,tibiaMeshV,'w','none',1);
+plotV(mmPoint,'r.','markerSize',15)
+plotV(lmPoint,'b.','markerSize',15)
 axisGeom; camlight headlight;
 
 %% Identify a tibial plateau nodes
@@ -463,7 +492,7 @@ febioLogFileName_strainEnergy = [febioFebFileNamePart,'_energy_out.txt']; %Log f
 %Material parameters (MPa if spatial units are mm)
 %Parameters here are somewhat an average of cortical and trabecular bone.
 %In an ideal setting we'd split these up within the mesh
-youngsMod = 15000; %Youngs modulus
+youngsMod = 10000; %%%%15000; %Youngs modulus
 poisson = 0.3; %Poissons ratio
 
 %FEA control settings
@@ -527,21 +556,48 @@ febio_spec.Geometry.Elements{1}.elem.VAL = tibiaMeshE;
 % % % febio_spec.Geometry.Elements{2}.elem.VAL=E2;
 
 % -> NodeSets
-%Top support
+%Proximal support
 febio_spec.Geometry.NodeSet{1}.ATTR.name = 'bcSupportList';
 febio_spec.Geometry.NodeSet{1}.node.ATTR.id = bcPlateauPrescribeList(:);
 %Force application nodes
 febio_spec.Geometry.NodeSet{2}.ATTR.name = 'jointSurfaceNodes';
 febio_spec.Geometry.NodeSet{2}.node.ATTR.id = jointPointID(:);
+%Distal support
+%Medial
+febio_spec.Geometry.NodeSet{3}.ATTR.name = 'medialDistalSupport';
+febio_spec.Geometry.NodeSet{3}.node.ATTR.id = mmPointID(:);
+%Lateral
+febio_spec.Geometry.NodeSet{4}.ATTR.name = 'lateralDistalSupport';
+febio_spec.Geometry.NodeSet{4}.node.ATTR.id = lmPointID(:);
+
+%%%%% TODO: fixed boundary conditions could theoretically be assigned together
 
 %Boundary condition section
 % -> Fix boundary conditions
+%Proximal support
 febio_spec.Boundary.fix{1}.ATTR.bc = 'x';
 febio_spec.Boundary.fix{1}.ATTR.node_set = febio_spec.Geometry.NodeSet{1}.ATTR.name;
 febio_spec.Boundary.fix{2}.ATTR.bc = 'y';
 febio_spec.Boundary.fix{2}.ATTR.node_set = febio_spec.Geometry.NodeSet{1}.ATTR.name;
 febio_spec.Boundary.fix{3}.ATTR.bc = 'z';
 febio_spec.Boundary.fix{3}.ATTR.node_set = febio_spec.Geometry.NodeSet{1}.ATTR.name;
+%Distal support
+%Medial
+febio_spec.Boundary.fix{4}.ATTR.bc = 'x';
+febio_spec.Boundary.fix{4}.ATTR.node_set = febio_spec.Geometry.NodeSet{3}.ATTR.name;
+febio_spec.Boundary.fix{5}.ATTR.bc = 'y';
+febio_spec.Boundary.fix{5}.ATTR.node_set = febio_spec.Geometry.NodeSet{3}.ATTR.name;
+febio_spec.Boundary.fix{6}.ATTR.bc = 'z';
+febio_spec.Boundary.fix{6}.ATTR.node_set = febio_spec.Geometry.NodeSet{3}.ATTR.name;
+%Lateral
+febio_spec.Boundary.fix{7}.ATTR.bc = 'x';
+febio_spec.Boundary.fix{7}.ATTR.node_set = febio_spec.Geometry.NodeSet{4}.ATTR.name;
+febio_spec.Boundary.fix{8}.ATTR.bc = 'y';
+febio_spec.Boundary.fix{8}.ATTR.node_set = febio_spec.Geometry.NodeSet{4}.ATTR.name;
+febio_spec.Boundary.fix{9}.ATTR.bc = 'z';
+febio_spec.Boundary.fix{9}.ATTR.node_set = febio_spec.Geometry.NodeSet{4}.ATTR.name;
+
+% -> Force boundary conditions
 %Force X
 febio_spec.MeshData.NodeData{1}.ATTR.name = 'force_X';
 febio_spec.MeshData.NodeData{1}.ATTR.node_set = febio_spec.Geometry.NodeSet{2}.ATTR.name;
