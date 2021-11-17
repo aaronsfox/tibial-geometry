@@ -124,4 +124,106 @@ end
 clear cc
 
 
+%% Heat map only
 
+%%%% Basic stuff at the moment...
+
+%Read in created points from gias2 reconstruction
+meanPoints = readmatrix('pointCloud_mean.csv');
+for cc = 1:10
+    
+    %Load the reconstructed component points
+    p3_Points = readmatrix(['pointCloud_pc',num2str(cc),'_p3.csv']);
+    m3_Points = readmatrix(['pointCloud_pc',num2str(cc),'_m3.csv']);
+
+    %%%%%%%% TODO: better looping...
+
+    %The reconstructed points don't align with the STL points after merging,
+    %but theoretically we should be able to find the matching points based on
+    %the minimum distance. We calculate the distance between each individual
+    %point in the mean imported point cloud and take the minimum to be the
+    %matching point. This gives us the index of the row to match the data to
+    %across the mean and reconstructed points so that they then match the STL.
+    for pp = 1:length(meanPoints)
+
+        %Calculate current point distances to STL nodes
+        distCurrPoint = distancePoints3d(meanV(pp,:),meanPoints);
+
+        %Get the index of the min distance points
+        minInd = find(distCurrPoint == min(distCurrPoint));
+
+        %Place the points from the reconstructed point clouds at the
+        %appropriate row to match the STL
+        %Note that we don't really need to reallign the mean points here as
+        %they already exist from the STL. We can check it here for sanity
+        %though if we want...
+    % % %     meanCheck(pp,:) = meanPoints(minInd,:);
+        pcPlusPoints(pp,:) = p3_Points(minInd,:);
+        pcMinusPoints(pp,:) = m3_Points(minInd,:);
+
+    end
+    clear pp
+
+% % %     %Visualise
+% % %     cFigure;
+% % %     gpatch(meanF,pcPlusPoints);
+% % %     axisGeom;
+
+    %Calculate distances between points for heat mapping
+    pcPlusDist = distancePoints3d(meanV,pcPlusPoints);
+    pcMinusDist = distancePoints3d(meanV,pcMinusPoints);
+
+    %Convert distances to face measures
+    pcPlusC = vertexToFaceMeasure(meanF,pcPlusDist);
+    pcMinusC = vertexToFaceMeasure(meanF,pcMinusDist);
+
+    %Visualise surfaces and change in points
+
+    %Create & export figure
+    
+    %Lateral
+    cFigure;
+    gpatch(meanF,pcPlusPoints,pcPlusC,'none');
+    colormap viridis; %colorbar;
+    axisGeom; 
+    view(90,90); %lateral
+    axis off;
+    camlight headlight
+    export_fig(['heatmap_PC',num2str(cc),'_lateral.png'],'-m2.5')
+    close()
+    
+    %Medial
+    cFigure;
+    gpatch(meanF,pcPlusPoints,pcPlusC,'none');
+    colormap viridis; %colorbar;
+    axisGeom; 
+    view(90,-90); %medial
+    axis off;
+    camlight headlight
+    export_fig(['heatmap_PC',num2str(cc),'_medial.png'],'-m2.5')
+    close()
+    
+    %Posterior
+    cFigure;
+    gpatch(meanF,pcPlusPoints,pcPlusC,'none');
+    colormap viridis; %colorbar;
+    axisGeom; 
+    view(90,180); %posterior
+    axis off;
+    camlight headlight
+    export_fig(['heatmap_PC',num2str(cc),'_posterior.png'],'-m2.5')
+    close()
+    
+    %Anterior
+    cFigure;
+    gpatch(meanF,pcPlusPoints,pcPlusC,'none');
+    colormap viridis; %colorbar;
+    axisGeom; 
+    view(90,0); %anterior
+    axis off;
+    camlight headlight
+    export_fig(['heatmap_PC',num2str(cc),'_anterior.png'],'-m2.5')
+    close()
+
+end
+clear cc
