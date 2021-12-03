@@ -1,5 +1,0 @@
-fitted_meshes/102480-tibia-fibula_rbfreg.stl
-fitted_meshes/102924-tibia-fibula_rbfreg.stl
-fitted_meshes/103559-tibia-fibula_rbfreg.stl
-fitted_meshes/103862-tibia-fibula_rbfreg.stl
-fitted_meshes/107215-tibia-fibula_rbfreg.stl

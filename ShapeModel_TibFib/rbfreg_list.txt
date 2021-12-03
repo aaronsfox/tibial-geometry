@@ -1,5 +1,0 @@
-segmentations/102480-tibia-fibula.stl
-segmentations/102924-tibia-fibula.stl
-segmentations/103559-tibia-fibula.stl
-segmentations/103862-tibia-fibula.stl
-segmentations/107215-tibia-fibula.stl
