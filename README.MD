@@ -1,4 +1,4 @@
-# Statistical Shape Model of the Tibia
+# Statistical Shape Model of the Tibia-Fibula
 
 *We recommend downloading a Markdown reader like [Typora](https://typora.io/) to view the readme files within this dataset.*
 
@@ -10,10 +10,11 @@ A series of MATLAB dependencies are required to run the code associated with thi
 
 - [GIBBON](https://www.gibboncode.org/): used to prepare and analyse the 3D surface data
 - [geom3d](https://au.mathworks.com/matlabcentral/fileexchange/24484-geom3d): used to simplify the process of applying 3D geometric calculations
+- [export_fig](https://au.mathworks.com/matlabcentral/fileexchange/23629-export_fig): used to export high resolution figures from MATLAB
 
 
 
-## Data
+## Segmentation
 
 ***TODO: provide info on NMDID dataset***
 
@@ -25,3 +26,8 @@ The following points outline the functions and processes involved of the various
 
 - **createShapeModel.m:** This script contains the required commands to (i) remesh the surfaces to an even number of points; (ii) non-rigidly and rigidly register the surfaces to a target mesh; and (iii) create the statistical shape models. The process of registering the surfaces is time consuming (~1-2 hours), and hence an option is provided to do this or skip and load the existing data. This code also saves the shape model data to be used at a later stage.
 
+
+
+## Examples
+
+***TODO: add example list and links to documentation***
