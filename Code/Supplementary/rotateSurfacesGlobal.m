@@ -1,4 +1,4 @@
-function [tibiaF, tibiaV, fibulaF, fibulaV, trabF, trabV] = rotateSurfacesGlobal(landmarks, noFib, tibiaF, tibiaV, fibulaF, fibulaV, trabF, trabV)
+function [tibiaF, tibiaV, fibulaF, fibulaV, trabF, trabV] = rotateSurfacesGlobal(landmarks, tibiaF, tibiaV, fibulaF, fibulaV, trabF, trabV)
 
     %% Function that simplifies/cleans up the main code for rotating surfaces
     %  based on the extracted landmarks
@@ -23,12 +23,10 @@ function [tibiaF, tibiaV, fibulaF, fibulaV, trabF, trabV] = rotateSurfacesGlobal
         trabV(pp,:) = transformPoint3d(trabV(pp,:),globalTransform);    
     end
     clear pp
-    if ~noFib
-        for pp = 1:length(fibulaV)
-            fibulaV(pp,:) = transformPoint3d(fibulaV(pp,:),globalTransform);    
-        end
-        clear pp
+    for pp = 1:length(fibulaV)
+        fibulaV(pp,:) = transformPoint3d(fibulaV(pp,:),globalTransform);    
     end
+    clear pp
 
     %Transform landmarks
     currLandmarks = fieldnames(landmarks);
@@ -64,12 +62,10 @@ function [tibiaF, tibiaV, fibulaF, fibulaV, trabF, trabV] = rotateSurfacesGlobal
         trabV(pp,:) = transformPoint3d(trabV(pp,:),rotZ);    
     end
     clear pp
-    if ~noFib
-        for pp = 1:length(fibulaV)
-            fibulaV(pp,:) = transformPoint3d(fibulaV(pp,:),rotZ);    
-        end
-        clear pp
+    for pp = 1:length(fibulaV)
+        fibulaV(pp,:) = transformPoint3d(fibulaV(pp,:),rotZ);    
     end
+    clear pp
 
     %Transform landmarks
     currLandmarks = fieldnames(landmarks);
@@ -90,12 +86,10 @@ function [tibiaF, tibiaV, fibulaF, fibulaV, trabF, trabV] = rotateSurfacesGlobal
         trabV(pp,:) = transformPoint3d(trabV(pp,:),transMatrix);    
     end
     clear pp
-    if ~noFib
-        for pp = 1:length(fibulaV)
-            fibulaV(pp,:) = transformPoint3d(fibulaV(pp,:),transMatrix);    
-        end
-        clear pp
+    for pp = 1:length(fibulaV)
+        fibulaV(pp,:) = transformPoint3d(fibulaV(pp,:),transMatrix);    
     end
+    clear pp
 
     %Transform landmarks
     currLandmarks = fieldnames(landmarks);
@@ -120,12 +114,10 @@ function [tibiaF, tibiaV, fibulaF, fibulaV, trabF, trabV] = rotateSurfacesGlobal
         trabV(pp,:) = transformPoint3d(trabV(pp,:),createRotationOz(deg2rad(-90)));    
     end
     clear pp
-    if ~noFib
-        for pp = 1:length(fibulaV)
-            fibulaV(pp,:) = transformPoint3d(fibulaV(pp,:),createRotationOz(deg2rad(-90)));    
-        end
-        clear pp
+    for pp = 1:length(fibulaV)
+        fibulaV(pp,:) = transformPoint3d(fibulaV(pp,:),createRotationOz(deg2rad(-90)));    
     end
+    clear pp
 
     %Transform landmarks
     currLandmarks = fieldnames(landmarks);
@@ -145,12 +137,10 @@ function [tibiaF, tibiaV, fibulaF, fibulaV, trabF, trabV] = rotateSurfacesGlobal
         trabV(pp,:) = transformPoint3d(trabV(pp,:),createRotationOy(deg2rad(-90)));    
     end
     clear pp
-    if ~noFib
-        for pp = 1:length(fibulaV)
-            fibulaV(pp,:) = transformPoint3d(fibulaV(pp,:),createRotationOy(deg2rad(-90)));    
-        end
-        clear pp
+    for pp = 1:length(fibulaV)
+        fibulaV(pp,:) = transformPoint3d(fibulaV(pp,:),createRotationOy(deg2rad(-90)));    
     end
+    clear pp
 
     %Transform landmarks
     currLandmarks = fieldnames(landmarks);
