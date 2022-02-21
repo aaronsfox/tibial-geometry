@@ -4,3 +4,10 @@
 
 ***TODO: construct README to walkthrough process***
 
+
+
+GIBBON = dependency for exporting STL's and image
+
+export_fig = dependency for exporting the image
+
+geom3d = dependency for exporting the image 
