@@ -48,6 +48,9 @@ function [reconstructed] = simulatedPopulation(nSamples, shapeModel, selectPCs, 
     %
     %       %Set the desired number of samples
     %       nSamples = 30;
+    %       
+    %       %Set Shape model type
+    %       shapeModel = tibiaFibulaShapeModel
     %
     %       %Set the PCs to use in the reconstruction
     %       %This example uses the first 5, ignores the 6th, and uses the 7th
@@ -57,14 +60,14 @@ function [reconstructed] = simulatedPopulation(nSamples, shapeModel, selectPCs, 
     %       sdBounds = 1.5;
     %
     %       %Set the options
-    %       opts.seed = 12345;
-    %       opts.exportSTL = true;
+    %       opts.seed = 3;
+    %       opts.exportSTL = false;
     %       opts.exportIMG = true;
     %       opts.heatMapIMG = true;
     %       opts.labelsOnIMG = false;
     %
     %       %Run function
-    %       simulatedPopulation(nSamples, tibiaShapeModel, selectPCs, sdBounds, opts)
+    %       simulatedPopulation(nSamples, shapeModel, selectPCs, sdBounds, opts)
 
     %% Check function inputs
 
