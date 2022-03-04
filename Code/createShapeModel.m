@@ -223,7 +223,7 @@ if registerSurfaces
             gpatch(tibiaF, tibiaV, 'rw', 'none', 0.3);
             gpatch(data.tibia.F(:,:,1), tibiaV_sorted, 'gw', 'k');
             title('Registered Tibia');
-            axisGeom;;
+            axisGeom;
 
             %Allocate to original variables
             tibiaF = data.tibia.F(:,:,1); %use target mesh faces
@@ -579,6 +579,15 @@ end
 %Save the shape model data
 save('tibiaShapeModel.mat', 'tibiaShapeModel');
 
+%Export the shape model surface mean
+stlStructTibMean.solidNames = {'tibiaShapeModel_mean'}; %names of parts
+stlStructTibMean.solidVertices = {tibiaShapeModel.meanPoints}; %Vertices
+stlStructTibMean.solidFaces = {tibiaShapeModel.F}; %Faces
+stlStructTibMean.solidNormals={[]};
+
+%Export STLs
+export_STL_txt('tibiaShapeModel_mean.stl', stlStructTibMean);
+        
 %Return to base shape model directory
 cd('..');
 
@@ -692,6 +701,15 @@ end
 %Save the shape model data
 save('tibiaFibulaShapeModel.mat', 'tibiaFibulaShapeModel');
 
+%Export the shape model surface mean
+stlStructTibFibMean.solidNames = {'tibiaFibulaShapeModel_mean'}; %names of parts
+stlStructTibFibMean.solidVertices = {tibiaFibulaShapeModel.meanPoints}; %Vertices
+stlStructTibFibMean.solidFaces = {tibiaFibulaShapeModel.F}; %Faces
+stlStructTibFibMean.solidNormals={[]};
+
+%Export STLs
+export_STL_txt('tibiaFibulaShapeModel_mean.stl', stlStructTibFibMean);
+
 %Return to base shape model directory
 cd('..');
 
@@ -804,6 +822,15 @@ end
 
 %Save the shape model data
 save('trabShapeModel.mat', 'trabShapeModel');
+
+%Export the shape model surface mean
+stlStructTrabMean.solidNames = {'trabShapeModel_mean'}; %names of parts
+stlStructTrabMean.solidVertices = {trabShapeModel.meanPoints}; %Vertices
+stlStructTrabMean.solidFaces = {trabShapeModel.F}; %Faces
+stlStructTrabMean.solidNormals={[]};
+
+%Export STLs
+export_STL_txt('trabShapeModel_mean.stl', stlStructTrabMean);
 
 %Return to base shape model directory
 cd('..');
