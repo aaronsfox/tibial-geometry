@@ -44,10 +44,10 @@ function [reconstructed] = simulatedPopulation(nSamples, shapeModel, selectPCs, 
     %% EXAMPLE
       
 %           %Load the tibia and trabecular shape models required
-%           load('\\rds.shares.deakin.edu.au\rds\RDS27024-GaitLabResearch\TibialStress\tibial-geometry\ShapeModels\tibia-fibula');
+%           load('..\..\ShapeModels\tibia-fibula\tibiaFibulaShapeModel.mat');
 
 %           %Set the desired number of samples
-%           nSamples = 10;
+%           nSamples = 30;
 %           
 %           %Set Shape model type
 %           shapeModel = tibiaFibulaShapeModel
@@ -67,7 +67,7 @@ function [reconstructed] = simulatedPopulation(nSamples, shapeModel, selectPCs, 
 %           opts.labelsOnIMG = false;
 %     
 %           %Run function
-%           simulatedPopulation(nSamples, shapeModel, selectPCs, sdBounds, opts)
+%           simulatedPopulation(nSamples, shapeModel, selectPCs, sdBounds,opts);
 
     %% Check function inputs
 
@@ -218,7 +218,7 @@ function [reconstructed] = simulatedPopulation(nSamples, shapeModel, selectPCs, 
        
     end
     
-    %% Export image
+ %% Export image
     
     if opts.exportIMG
         
@@ -235,6 +235,17 @@ function [reconstructed] = simulatedPopulation(nSamples, shapeModel, selectPCs, 
         
         %Create figure
         cFigure; hold on;
+        
+        %Get the current figure
+        fig = gcf();
+        
+        %Set units to centimeters
+        fig.Units = 'centimeters';
+        %Set the figure position/size
+        fig.Position = [0,0,round(tiledlayoutsq)*2.5,ceil(tiledlayoutsq)*4];
+        %Make it relative to round(tiledLayoutsq)
+        %round(tiledLayoutsq)*2.5 fpr width
+        %ceil(tiledLayoutsq)* 4 for height
         
         %create subplot with minimal padding and tight tile spacing
         tiledlayout(ceil(tiledlayoutsq), round(tiledlayoutsq),'TileSpacing','none', 'Padding', 'tight');
