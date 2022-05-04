@@ -16,9 +16,10 @@ A series of MATLAB dependencies are required to run the code associated with thi
 
 ## Segmentation
 
-***TODO: provide info on NMDID dataset***
+Lower limb computed tomography (CT) scans from the right tibia and fibula of 30 cadavers (male n = 20, female n =10) were selected for use in this dataset. CT scans were provided by the [New Mexico Decedent Image Database](https://nmdid.unm.edu/) (NMDID). The NMDID dataset includes whole body CT scans of over 15,000 New Mexicans who died between 2010-2017. CT scan Slice thickness is 1 mm with 0.5 mm overlap. The images included for use in creation of the dataset were from individuals between 18 to 40 years who participated in impact-based physical activities (i.e. team sports, dancing, recreational running and walking). Images were not selected for inclusion if there was any noticeable damage to the right tibia-fibula or the inclusion of medical devices (plates, rods, or screws). Images were segmented using mimics innovation suite.
+Tibias were segmented into two surfaces representing the outer boundaries of the trabecular and cortical bone, while fibulas where segmented as one surface representing the outer shape of the entire bone. Cortical bone was classified as all visible hard bone, while trabecular was all soft bone and the medulla cavity. 
 
-
+****The CT files and segmentation files will not be provided as apart of this dataset. STL files of the segmented images will be made avalible.
 
 ## Code
 

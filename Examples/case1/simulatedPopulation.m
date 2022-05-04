@@ -42,32 +42,32 @@ function [reconstructed] = simulatedPopulation(nSamples, shapeModel, selectPCs, 
     %                       reconstructed points from the process
     %
     %% EXAMPLE
-    %   
-    %       %Load the tibia and trabecular shape models required
-    %       load('..\..\ShapeModels\tibia\tibiaShapeModel.mat');
-    %
-    %       %Set the desired number of samples
-    %       nSamples = 30;
-    %       
-    %       %Set Shape model type
-    %       shapeModel = tibiaFibulaShapeModel
-    %
-    %       %Set the PCs to use in the reconstruction
-    %       %This example uses the first 5, ignores the 6th, and uses the 7th
-    %       selectPCs = [true, true, true, true, true, false, true];
-    %
-    %       %Set the standard deviation bounds
-    %       sdBounds = 1.5;
-    %
-    %       %Set the options
-    %       opts.seed = 3;
-    %       opts.exportSTL = false;
-    %       opts.exportIMG = true;
-    %       opts.heatMapIMG = true;
-    %       opts.labelsOnIMG = false;
-    %
-    %       %Run function
-    %       simulatedPopulation(nSamples, shapeModel, selectPCs, sdBounds, opts)
+      
+%           %Load the tibia and trabecular shape models required
+%           load('..\..\ShapeModels\tibia-fibula\tibiaFibulaShapeModel.mat');
+
+%           %Set the desired number of samples
+%           nSamples = 30;
+%           
+%           %Set Shape model type
+%           shapeModel = tibiaFibulaShapeModel
+%     
+%           %Set the PCs to use in the reconstruction
+%           %This example uses the first 5, ignores the 6th, and uses the 7th
+%           selectPCs = [true, true, true, true, true, false, true];
+%     
+%           %Set the standard deviation bounds
+%           sdBounds = 1.5;
+%     
+%           %Set the options
+%           opts.seed = 3;
+%           opts.exportSTL = false;
+%           opts.exportIMG = true;
+%           opts.heatMapIMG = true;
+%           opts.labelsOnIMG = false;
+%     
+%           %Run function
+%           simulatedPopulation(nSamples, shapeModel, selectPCs, sdBounds,opts);
 
     %% Check function inputs
 
@@ -218,7 +218,7 @@ function [reconstructed] = simulatedPopulation(nSamples, shapeModel, selectPCs, 
        
     end
     
-    %% Export image
+ %% Export image
     
     if opts.exportIMG
         
@@ -231,18 +231,32 @@ function [reconstructed] = simulatedPopulation(nSamples, shapeModel, selectPCs, 
         
         %Determine a relatively even square grid to subplot onto based on
         %the number of simulated samples
-        subplotSq = sqrt(nSamples);
+        tiledlayoutsq = sqrt(nSamples);
         
         %Create figure
         cFigure; hold on;
-
+        
+        %Get the current figure
+        fig = gcf();
+        
+        %Set units to centimeters
+        fig.Units = 'centimeters';
+        %Set the figure position/size
+        fig.Position = [0,0,round(tiledlayoutsq)*2.5,ceil(tiledlayoutsq)*4];
+        %Make it relative to round(tiledLayoutsq)
+        %round(tiledLayoutsq)*2.5 fpr width
+        %ceil(tiledLayoutsq)* 4 for height
+        
+        %create subplot with minimal padding and tight tile spacing
+        tiledlayout(ceil(tiledlayoutsq), round(tiledlayoutsq),'TileSpacing','none', 'Padding', 'tight');
+       
         %Loop through each simulated tibia to create subplot 
         for sampleInd = 1:nSamples
+           
+            %navigate to next tile
+            nexttile(sampleInd);
             
-            %create subplot
-            subplot(ceil(subplotSq), round(subplotSq), sampleInd); hold on;
-            
-            %Add surface to subplot
+            %Add surface to tile
             if opts.heatMapIMG
                 
                 %Calculate point error distance
@@ -258,14 +272,18 @@ function [reconstructed] = simulatedPopulation(nSamples, shapeModel, selectPCs, 
 
                 %Interpolate colouring for smoothness
                 hp.FaceColor = 'Interp'; colormap viridis
+                
+       
                                 
             else
                 
                 %Add surface with bone colouring
                 hp = gpatch(shapeModel.F, reconstructed(:,:,sampleInd), ...
                     '#e3dac9', 'none', 1);
+              
                 
             end
+            
             
             %Set axis view
             axis equal; axis tight;
@@ -275,6 +293,7 @@ function [reconstructed] = simulatedPopulation(nSamples, shapeModel, selectPCs, 
             
             %Set axis limits
             ax = gca;
+            ax.Clipping = 'off';
             ax.XLim = [xMin xMax];
             ax.YLim = [yMin yMax];
             
