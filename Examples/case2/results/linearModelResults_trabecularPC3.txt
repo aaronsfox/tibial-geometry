@@ -1,0 +1,20 @@
+
+Linear regression model:
+    y ~ 1 + x1 + x2 + x3 + x4 + x5
+
+Estimated Coefficients:
+                    <strong>Estimate</strong>         <strong>SE</strong>          <strong>tStat</strong>         <strong>pValue</strong>  
+                   <strong>___________</strong>    <strong>________</strong>    <strong>___________</strong>    <strong>__________</strong>
+
+    <strong>(Intercept)</strong>    -1.8162e-14        8.33    -2.1803e-15             1
+    <strong>x1         </strong>      0.0025268    0.015731        0.16063       0.87373
+    <strong>x2         </strong>       -0.55201    0.098497        -5.6044    9.0815e-06
+    <strong>x3         </strong>        0.57408     0.13128         4.3728    0.00020468
+    <strong>x4         </strong>        0.16314     0.15321         1.0649       0.29753
+    <strong>x5         </strong>        0.29233      0.1547         1.8896      0.070944
+
+
+Number of observations: 30, Error degrees of freedom: 24
+Root Mean Squared Error: 45.6
+R-squared: 0.697,  Adjusted R-Squared: 0.634
+F-statistic vs. constant model: 11.1, p-value = 1.32e-05

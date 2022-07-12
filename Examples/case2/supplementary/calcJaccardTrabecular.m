@@ -9,76 +9,91 @@ function [jaccardSimilarity] = calcJaccardTrabecular(actualV, predictedV, shapeM
     %       predictedV - n x 3 array of the XYZ points of the predicted trabecular
     %       shapeModel - the structure with shape model data for the trabecular    
     
-    %% Calculate Jaccard similarity
+    %% Calculate Jaccard similarity    
 
-    %Identify size for a blank logical mask to fill with the actual volume locations
-    %Size of mask is based on maximum size of trabecular in X and Z directions
-    minX = min([floor(min(actualV(:,1))),floor(min(predictedV(:,1)))]);
-    maxX = max([ceil(max(actualV(:,1))),ceil(max(predictedV(:,1)))]);
-    diffX = maxX - minX;
-    minZ = min([floor(min(actualV(:,3))),floor(min(predictedV(:,3)))]);
-    maxZ = max([ceil(max(actualV(:,3))),ceil(max(predictedV(:,3)))]);
-    diffZ = maxZ - minZ;
+    %Set ggremesh options structure
+    opts.nb_pts = length(shapeModel.meanPoints); %Set desired number of points
+    opts.disp_on = 0; % Turn off command window text display
 
-    %Create look-up variables of X and Z coordinate steps to look trhough and
-    %apply to mask
-    xCoordSteps = linspace(minX, maxX, diffX+1);
-    zCoordSteps = linspace(minZ, maxZ, diffZ+1);
+    %Fix surfaces to ensure appropriate meshing
+    %Actual
+    [actualF, actualV] = mergeVertices(shapeModel.F, actualV);
+    [actualF, actualV] = ggremesh(actualF, actualV, opts);
+    %Predicted
+    [predictedF, predictedV] = mergeVertices(shapeModel.F, predictedV);
+    [predictedF, predictedV] = ggremesh(predictedF, predictedV, opts);
 
-    %Create the set of y-coordinates to look through based on min and max coordinates
-    minY = min([floor(min(actualV(:,2))),floor(min(predictedV(:,2)))]);
-    maxY = max([ceil(max(actualV(:,2))),ceil(max(predictedV(:,2)))]);
-    diffY = maxY - minY;
-    yCoordSteps = linspace(minY, maxY, diffY+1);
-    yCoordSteps = yCoordSteps(1:2:end);
+    %Find interior point
+    innerPointActual = getInnerPoint(actualF, actualV);
+    innerPointPredicted = getInnerPoint(predictedF, predictedV);
 
-    %Set starting values for TP, FP and FN
-    TP = 0; FP = 0; FN = 0;
+    %Create volumetric meshes using tetGen
+
+    %Original surface
+    tetVolume = tetVolMeanEst(actualF, actualV); %Volume for regular tets
+    tetGenStruct.stringOpt = '-pq1.2AaY';
+    tetGenStruct.Faces = actualF;
+    tetGenStruct.Nodes = actualV;
+    tetGenStruct.holePoints = [];
+    tetGenStruct.faceBoundaryMarker = ones(size(actualF,1),1); %Face boundary markers
+    tetGenStruct.regionPoints = innerPointActual; %region points
+    tetGenStruct.regionA = tetVolume;
+    [meshActual] = runTetGen(tetGenStruct); %Run tetGen
+
+    %Reconstructed surface
+    tetVolume = tetVolMeanEst(predictedF, predictedV); %Volume for regular tets
+    tetGenStruct.stringOpt = '-pq1.2AaY';
+    tetGenStruct.Faces = predictedF;
+    tetGenStruct.Nodes = predictedV;
+    tetGenStruct.holePoints = [];
+    tetGenStruct.faceBoundaryMarker = ones(size(predictedF,1),1); %Face boundary markers
+    tetGenStruct.regionPoints = innerPointPredicted; %region points
+    tetGenStruct.regionA = tetVolume;
+    [meshPredicted] = runTetGen(tetGenStruct); %Run tetGen
     
-    %Create wait bar for calculating Jaccard similarity
-    wbar = waitbar(0, 'Calculating Jaccard similarity...');
+    %Check if reconstructed surface meshes
+    %Sometimes needs smoothing to sort out intersecting faces
+    if isempty(meshPredicted.nodes)
+
+        %Smoothing surface
+        smoothPar.n = 2; %2 iterations
+        smoothPar.Method = 'LAP'; %Laplacian smoothing method        
+        smoothPredictedV = patchSmooth(predictedF, predictedV,[],smoothPar);
+
+        %Remesh using ggremesh to reduce complexity
+        [smoothPredictedF,smoothPredictedV] = ggremesh(predictedF, smoothPredictedV, opts);
+
+        %Get an updated inner point estimate
+        innerPointPredicted = getInnerPoint(smoothPredictedF,smoothPredictedV);
+
+        %Mesh newly smoothed reconstructed surface
+        tetVolume = tetVolMeanEst(smoothPredictedF,smoothPredictedV); %Volume for regular tets
+        tetGenStruct.stringOpt = '-pq1.2AaY';
+        tetGenStruct.Faces = smoothPredictedF;
+        tetGenStruct.Nodes = smoothPredictedV;
+        tetGenStruct.holePoints = [];
+        tetGenStruct.faceBoundaryMarker = ones(size(smoothPredictedF,1),1); %Face boundary markers
+        tetGenStruct.regionPoints = innerPointPredicted; %region points
+        tetGenStruct.regionA = tetVolume;
+        [meshPredicted] = runTetGen(tetGenStruct); %Run tetGen
     
-    %Loop through y-coordinate steps and calculate Jaccard similarity
-    for yInd = 1:length(yCoordSteps)
-
-        %Set y-level to search on current iteration
-        yLevel = yCoordSteps(yInd);
-
-        %Create set of points to check based on current coordinate steps
-        ptInd = 1;
-        for row = 1:length(xCoordSteps)
-            for col = 1:length(zCoordSteps)
-                chkPts(ptInd,:) = [xCoordSteps(row), yLevel, zCoordSteps(col)];
-                ptInd = ptInd+1;
-            end
-        end
-
-        %Check whether points are within original and reconsructed surfaces
-        origInside = intriangulation(actualV, shapeModel.F, chkPts);
-        recInside = intriangulation(predictedV, shapeModel.F, chkPts);
-
-        %Reshape logical values to fit mask shape
-        maskOrig = reshape(origInside', [], length(xCoordSteps))';
-        maskRec = reshape(recInside', [], length(xCoordSteps))';
-
-        %Manually calculate jaccard similarity
-        TP = TP + sum(maskOrig & maskRec, 'all');
-        FP = FP + sum(maskOrig & ~maskRec, 'all');
-        FN = FN + sum(~maskOrig & maskRec, 'all');
-
-    % % %     %Compare masks
-    % % %     figure;
-    % % %     imshowpair(maskOrig, maskRec);
-    
-        %Update waitbar
-        waitbar(yInd / length(yCoordSteps), wbar);
-
     end
 
-    %Calculate the jaccard similarity of the total slices
+    %Identify number of reconstructed volume points that are inside original
+    %i.e. true positives
+    reconInOrig = intriangulation(meshActual.nodes, meshActual.facesBoundary, meshPredicted.nodes, 0);
+    TP = sum(reconInOrig);
+
+    %Identify number of reconstructed volume that are outside original
+    %i.e. false positives
+    FP = sum(~reconInOrig);
+
+    %Identify number of original points not in reconstructed volume
+    %i.e. false negatives
+    origInRecon = intriangulation(meshPredicted.nodes, meshPredicted.facesBoundary, meshActual.nodes, 0);
+    FN = sum(~origInRecon);
+
+    %Calculate jaccard similarity
     jaccardSimilarity = TP / (TP + FP + FN);
-    
-    %Close waitbar
-    close(wbar);
-    
+
 end
