@@ -23,6 +23,10 @@
 %Defaulted to false as this is a time consuming process (~1-2 hours)
 registerSurfaces = false;
 
+%Flag to calculate results
+%Defaulted to false as results are available and can be read in
+calcResults = false;
+
 %% Set-up
 
 %Set home directory
@@ -507,74 +511,198 @@ tibiaShapeModel.reconstructed = ...
     tibiaShapeModel.loadings(:,1:tibiaShapeModel.retainPCs)';
 
 %Calculate the distance error between reconstructed and actual points across cases
-for caseInd = 1:length(caseID)
+if calcResults
     
-    %Calculate point error distance
-    tibiaShapeModel.pointErrorDist(caseInd,:) = ...
-        distancePoints3d(data.tibia.V(:,:,caseInd), ...
-        reshape((tibiaShapeModel.reconstructed(caseInd,:) + tibiaShapeModel.mean),...
-        [3, length(tibiaShapeModel.mean)/3])');
+    for caseInd = 1:length(caseID)
 
-    %Calculate the mean error
-    tibiaShapeModel.pointErrorDistMean(caseInd,1) = ...
-        mean(tibiaShapeModel.pointErrorDist(caseInd,:));
-    
-    %Calculate the peak error
-    tibiaShapeModel.pointErrorDistMax(caseInd,1) = ...
-        max(tibiaShapeModel.pointErrorDist(caseInd,:));
-    
-    %Convert distance error to colour scales for visualisation
-    tibiaShapeModel.pointErrorDistColF(caseInd,:) = vertexToFaceMeasure(tibiaShapeModel.F, ...
-        tibiaShapeModel.pointErrorDist(caseInd,:)');
-    tibiaShapeModel.pointErrorDistColV(caseInd,:) = faceToVertexMeasure(tibiaShapeModel.F, ...
-        data.tibia.V(:,:,caseInd), ...
-        tibiaShapeModel.pointErrorDistColF(caseInd,:)');    
-    
-    %Create visualisation of error
-    %Use subplots to create different perspectives
-    cFigure; hold on;    
-    %Loop through four views to create subplot
-    for viewNo = 1:4    
-        %Create subplot for current view
-        subplot(1,4,viewNo);
-        %Add surface
-        hp = gpatch(tibiaShapeModel.F, ...
-                reshape(tibiaShapeModel.reconstructed(caseInd,:) + tibiaShapeModel.mean, ...
-                [3, length(tibiaShapeModel.mean)/3])', ...
-                tibiaShapeModel.pointErrorDistColV(caseInd,:)', 'none', 1);
-        %Interpolate colouring for smoothness
-        hp.FaceColor = 'Interp'; colormap viridis
-        %Set axis view
-        axis equal; axis tight;
-        view(0,90); rotate(hp,[0 1 0], surfaceRot(viewNo));
-        %Set axis parameters
-        camlight headlight; axis off
-        %Add colorbar on last view
-        if viewNo == 4
-            colorbar
+        %Calculate point error distance
+        tibiaShapeModel.pointErrorDist(caseInd,:) = ...
+            distancePoints3d(data.tibia.V(:,:,caseInd), ...
+            reshape((tibiaShapeModel.reconstructed(caseInd,:) + tibiaShapeModel.mean),...
+            [3, length(tibiaShapeModel.mean)/3])');
+
+        %Calculate the mean error
+        tibiaShapeModel.pointErrorDistMean(caseInd,1) = ...
+            mean(tibiaShapeModel.pointErrorDist(caseInd,:));
+
+        %Calculate the peak error
+        tibiaShapeModel.pointErrorDistMax(caseInd,1) = ...
+            max(tibiaShapeModel.pointErrorDist(caseInd,:));
+
+        %Convert distance error to colour scales for visualisation
+        tibiaShapeModel.pointErrorDistColF(caseInd,:) = vertexToFaceMeasure(tibiaShapeModel.F, ...
+            tibiaShapeModel.pointErrorDist(caseInd,:)');
+        tibiaShapeModel.pointErrorDistColV(caseInd,:) = faceToVertexMeasure(tibiaShapeModel.F, ...
+            data.tibia.V(:,:,caseInd), ...
+            tibiaShapeModel.pointErrorDistColF(caseInd,:)');
+
+        %Calculate Jaccard index
+        tibiaShapeModel.jaccardSimilarity(caseInd,1) = ...
+            calcJaccardShapeModel(data.tibia.V(:,:,caseInd), ...
+            reshape((tibiaShapeModel.reconstructed(caseInd,:) + tibiaShapeModel.mean), ...
+            [3, length(tibiaShapeModel.mean)/3])', ...
+            tibiaShapeModel,...
+            1);
+
+        %Create visualisation of error
+        %Use subplots to create different perspectives
+        cFigure; hold on;    
+        %Loop through four views to create subplot
+        for viewNo = 1:4    
+            %Create subplot for current view
+            subplot(1,4,viewNo);
+            %Add original surface
+            hpOrig = gpatch(tibiaShapeModel.F, data.tibia.V(:,:,caseInd), [200/255 200/255 200/255], 'none', 0.5);
+            %Add predicted surface
+            hpPred = gpatch(tibiaShapeModel.F, ...
+                    reshape(tibiaShapeModel.reconstructed(caseInd,:) + tibiaShapeModel.mean, ...
+                    [3, length(tibiaShapeModel.mean)/3])', ...
+                    tibiaShapeModel.pointErrorDistColV(caseInd,:)', 'none', 1);
+            %Interpolate colouring for smoothness
+            hpPred.FaceColor = 'Interp'; colormap viridis
+            %Set axis view
+            axis equal; axis tight; view(0,90);
+            rotate(hpOrig,[0 1 0], surfaceRot(viewNo));
+            rotate(hpPred,[0 1 0], surfaceRot(viewNo));
+            %Set axis parameters
+            camlight headlight; axis off
+            %Add colorbar on last view
+            if viewNo == 4
+                colorbar
+            end
+            %Add title
+            title([viewLabel{viewNo},' View'], 'FontSize', 12);
         end
-        %Add title
-        title([viewLabel{viewNo},' View'], 'FontSize', 12);
+        
+        %Export figure
+        export_fig(['figures\reconstructionErrors\',caseID{caseInd},'_reconstructionErrorMap.png'],'-m1');
+    	close
+
     end
     
-    %Export figure
-    export_fig(['figures\reconstructionErrors\',caseID{caseInd},'_reconstructionErrorMap.png'],'-m1');
-	close
+    %Place calculations into table
+    tibiaShapeModel.errorSummaryTable = table(tibiaShapeModel.pointErrorDistMean, ...
+        tibiaShapeModel.pointErrorDistMax, ...
+        tibiaShapeModel.jaccardSimilarity, ...
+        'VariableNames', {'pointErrorDistMean', 'pointErrorDistMax', 'jaccardSimilarity'}, ...
+        'RowNames', caseID);
+    
+    %Export table to file
+    writetable(tibiaShapeModel.errorSummaryTable, 'results\errorSummaryTable.csv', ...
+        'WriteRowNames', true);
+
+else
+    
+    %Read in saved table
+    tibiaShapeModel.errorSummaryTable = readtable('results\errorSummaryTable.csv');
+    
+    %Unpack to structure
+    tibiaShapeModel.pointErrorDistMean = tibiaShapeModel.errorSummaryTable.pointErrorDistMean;
+    tibiaShapeModel.pointErrorDistMax = tibiaShapeModel.errorSummaryTable.pointErrorDistMax;
+    tibiaShapeModel.jaccardSimilarity = tibiaShapeModel.errorSummaryTable.jaccardSimilarity;
     
 end
+
+%Calculate and display mean and 95% CI's for the mean and peak error, and Jaccard 
+%Mean error
+meanError_m = mean(tibiaShapeModel.pointErrorDistMean);
+meanError_sd = std(tibiaShapeModel.pointErrorDistMean);
+meanError_lower95 = meanError_m - (1.96 * (meanError_sd / sqrt(length(caseID))));
+meanError_upper95 = meanError_m + (1.96 * (meanError_sd / sqrt(length(caseID))));
+%Peak error
+maxError_m = mean(tibiaShapeModel.pointErrorDistMax);
+maxError_sd = std(tibiaShapeModel.pointErrorDistMax);
+maxError_lower95 = maxError_m - (1.96 * (maxError_sd / sqrt(length(caseID))));
+maxError_upper95 = maxError_m + (1.96 * (maxError_sd / sqrt(length(caseID))));
+%Jaccard similarity
+jaccard_m = mean(tibiaShapeModel.jaccardSimilarity);
+jaccard_sd = std(tibiaShapeModel.jaccardSimilarity);
+jaccard_lower95 = jaccard_m - (1.96 * (jaccard_sd / sqrt(length(caseID))));
+jaccard_upper95 = jaccard_m + (1.96 * (jaccard_sd / sqrt(length(caseID))));
+%Display
+disp(['Tibia shape model reconstruction mean point error (mean +/- 95% CIs) = ',num2str(round(meanError_m,2)), ...
+    '[',num2str(round(meanError_lower95,2)),',',num2str(round(meanError_upper95,2)),']']);
+disp(['Tibia shape model reconstruction max point error (mean +/- 95% CIs) = ',num2str(round(maxError_m,2)), ...
+    '[',num2str(round(maxError_lower95,2)),',',num2str(round(maxError_upper95,2)),']']);
+disp(['Tibia shape model Jaccard index (mean +/- 95% CIs) = ',num2str(round(jaccard_m,3)), ...
+    '[',num2str(round(jaccard_lower95,3)),',',num2str(round(jaccard_upper95,3)),']']);
+
+%Create summary figure of error data
+%Create figure
+hfErr = cFigure; hold on
+hfErr.Units = 'centimeters';
+hfErr.Position = [5, 5, 24, 6];
+%Plot mean error data
+%Create subplot
+subplot(1,3,1); hold on
+%Plot mean as dashed line & CIs as dotted lines
+plot([1,length(caseID)], [meanError_m, meanError_m], ...
+    'Color', 'k', 'LineWidth', 2, 'LineStyle', '--');
+plot([1,length(caseID)], [meanError_lower95, meanError_lower95], ...
+    'Color', 'k', 'LineWidth', 1, 'LineStyle', ':');
+plot([1,length(caseID)], [meanError_upper95, meanError_upper95], ...
+    'Color', 'k', 'LineWidth', 1, 'LineStyle', ':');
+%Plot participant data
+scatter(linspace(1,length(caseID), length(caseID)), tibiaShapeModel.pointErrorDistMean, ...
+    15, 'k', 'filled');
+%Set labels
+xlabel('Participants'); ylabel('Error (mm)'); title('Mean Position Error');
+%Remove ticks
+ax = gca(); ax.XTick = [];
+%Plot max error data
+%Create subplot
+subplot(1,3,2); hold on
+%Plot mean as dashed line & CIs as dotted lines
+plot([1,length(caseID)], [maxError_m, maxError_m], ...
+    'Color', 'k', 'LineWidth', 2, 'LineStyle', '--');
+plot([1,length(caseID)], [maxError_lower95, maxError_lower95], ...
+    'Color', 'k', 'LineWidth', 1, 'LineStyle', ':');
+plot([1,length(caseID)], [maxError_upper95, maxError_upper95], ...
+    'Color', 'k', 'LineWidth', 1, 'LineStyle', ':');
+%Plot participant data
+scatter(linspace(1,length(caseID), length(caseID)), tibiaShapeModel.pointErrorDistMax, ...
+    15, 'k', 'filled');
+%Set labels
+xlabel('Participants'); ylabel('Error (mm)'); title('Peak Position Error');
+%Remove ticks
+ax = gca(); ax.XTick = [];
+%Plot Jaccard similarity data
+%Create subplot
+subplot(1,3,3); hold on
+%Plot mean as dashed line & CIs as dotted lines
+plot([1,length(caseID)], [jaccard_m, jaccard_m], ...
+    'Color', 'k', 'LineWidth', 2, 'LineStyle', '--');
+plot([1,length(caseID)], [jaccard_lower95, jaccard_lower95], ...
+    'Color', 'k', 'LineWidth', 1, 'LineStyle', ':');
+plot([1,length(caseID)], [jaccard_upper95, jaccard_upper95], ...
+    'Color', 'k', 'LineWidth', 1, 'LineStyle', ':');
+%Plot participant data
+scatter(linspace(1,length(caseID), length(caseID)), tibiaShapeModel.jaccardSimilarity, ...
+    15, 'k', 'filled');
+%Set labels
+xlabel('Participants'); ylabel('Jaccard Index (0-1)'); title('Jaccard Similarity');
+%Remove ticks
+ax = gca(); ax.XTick = [];
+%Export summary figure
+export_fig('figures\errorSummary\errorSummaryFigure.png','-m2');
+close(hfErr);
 
 %This function can be used to examine the shape effect of a principal
 %component. It creates an interactive animation of increasing/decreasing
 %the score of a specific principal component by a factor of the standard
 %deviation (i.e. the fairly standardised method for interpreting principal
 %components). The below code is defaulting to visualising PC1 over a -3 to
-%+3 standard deviation range.
-% % % animatePrincipalComponent(tibiaShapeModel, 1, 3);
-
-%After running the above animate function there is an option to export the
-%gif using further GIBBON functionality using the command below. Refer to
-%GIBBON documentation for further details on anim8 functionality.
-% % % exportGifAnim8();
+%+3 standard deviation range, while also exporting the animation as a GIF.
+sdRange = 3;
+for nPC = 1:tibiaShapeModel.retainPCs
+    %Create animations
+    animatePrincipalComponent(tibiaShapeModel, nPC, sdRange, true);
+    %Shift to results folder
+    movefile(['PC',num2str(nPC),'_plus-',num2str(sdRange),'SD_animation.gif'], ...
+        ['results\PC',num2str(nPC),'_plus-',num2str(sdRange),'SD_animation.gif'])
+    movefile(['PC',num2str(nPC),'_minus-',num2str(sdRange),'SD_animation.gif'], ...
+        ['results\PC',num2str(nPC),'_minus-',num2str(sdRange),'SD_animation.gif'])
+end
 
 %Save the shape model data
 save('tibiaShapeModel.mat', 'tibiaShapeModel');
@@ -629,74 +757,197 @@ tibiaFibulaShapeModel.reconstructed = ...
     tibiaFibulaShapeModel.loadings(:,1:tibiaFibulaShapeModel.retainPCs)';
 
 %Calculate the distance error between reconstructed and actual points across cases
-for caseInd = 1:length(caseID)
+if calcResults
     
-    %Calculate point error distance
-    tibiaFibulaShapeModel.pointErrorDist(caseInd,:) = ...
-        distancePoints3d(data.tibia_fibula.V(:,:,caseInd), ...
-        reshape((tibiaFibulaShapeModel.reconstructed(caseInd,:) + tibiaFibulaShapeModel.mean),...
-        [3, length(tibiaFibulaShapeModel.mean)/3])');
+    for caseInd = 1:length(caseID)
 
-    %Calculate the mean error
-    tibiaFibulaShapeModel.pointErrorDistMean(caseInd,1) = ...
-        mean(tibiaFibulaShapeModel.pointErrorDist(caseInd,:));
-    
-    %Calculate the peak error
-    tibiaFibulaShapeModel.pointErrorDistMax(caseInd,1) = ...
-        max(tibiaFibulaShapeModel.pointErrorDist(caseInd,:));
-    
-    %Convert distance error to colour scales for visualisation
-    tibiaFibulaShapeModel.pointErrorDistColF(caseInd,:) = vertexToFaceMeasure(tibiaFibulaShapeModel.F, ...
-        tibiaFibulaShapeModel.pointErrorDist(caseInd,:)');
-    tibiaFibulaShapeModel.pointErrorDistColV(caseInd,:) = faceToVertexMeasure(tibiaFibulaShapeModel.F, ...
-        data.tibia_fibula.V(:,:,caseInd), ...
-        tibiaFibulaShapeModel.pointErrorDistColF(caseInd,:)'); 
-    
-    %Create visualisation of error
-    %Use subplots to create different perspectives
-    cFigure; hold on;    
-    %Loop through four views to create subplot
-    for viewNo = 1:4    
-        %Create subplot for current view
-        subplot(1,4,viewNo);
-        %Add surface
-        hp = gpatch(tibiaFibulaShapeModel.F, ...
-                reshape(tibiaFibulaShapeModel.reconstructed(caseInd,:) + tibiaFibulaShapeModel.mean, ...
-                [3, length(tibiaFibulaShapeModel.mean)/3])', ...
-                tibiaFibulaShapeModel.pointErrorDistColV(caseInd,:)', 'none', 1);
-        %Interpolate colouring for smoothness
-        hp.FaceColor = 'Interp'; colormap viridis
-        %Set axis view
-        axis equal; axis tight;
-        view(0,90); rotate(hp,[0 1 0], surfaceRot(viewNo));
-        %Set axis parameters
-        camlight headlight; axis off
-        %Add colorbar on last view
-        if viewNo == 4
-            colorbar
+        %Calculate point error distance
+        tibiaFibulaShapeModel.pointErrorDist(caseInd,:) = ...
+            distancePoints3d(data.tibia_fibula.V(:,:,caseInd), ...
+            reshape((tibiaFibulaShapeModel.reconstructed(caseInd,:) + tibiaFibulaShapeModel.mean),...
+            [3, length(tibiaFibulaShapeModel.mean)/3])');
+
+        %Calculate the mean error
+        tibiaFibulaShapeModel.pointErrorDistMean(caseInd,1) = ...
+            mean(tibiaFibulaShapeModel.pointErrorDist(caseInd,:));
+
+        %Calculate the peak error
+        tibiaFibulaShapeModel.pointErrorDistMax(caseInd,1) = ...
+            max(tibiaFibulaShapeModel.pointErrorDist(caseInd,:));
+
+        %Convert distance error to colour scales for visualisation
+        tibiaFibulaShapeModel.pointErrorDistColF(caseInd,:) = vertexToFaceMeasure(tibiaFibulaShapeModel.F, ...
+            tibiaFibulaShapeModel.pointErrorDist(caseInd,:)');
+        tibiaFibulaShapeModel.pointErrorDistColV(caseInd,:) = faceToVertexMeasure(tibiaFibulaShapeModel.F, ...
+            data.tibia_fibula.V(:,:,caseInd), ...
+            tibiaFibulaShapeModel.pointErrorDistColF(caseInd,:)'); 
+        
+        %Calculate Jaccard index
+        tibiaFibulaShapeModel.jaccardSimilarity(caseInd,1) = ...
+            calcJaccardShapeModel(data.tibia_fibula.V(:,:,caseInd), ...
+            reshape((tibiaFibulaShapeModel.reconstructed(caseInd,:) + tibiaFibulaShapeModel.mean), ...
+            [3, length(tibiaFibulaShapeModel.mean)/3])', ...
+            tibiaFibulaShapeModel, 2);
+
+        %Create visualisation of error
+        %Use subplots to create different perspectives
+        cFigure; hold on;    
+        %Loop through four views to create subplot
+        for viewNo = 1:4    
+            %Create subplot for current view
+            subplot(1,4,viewNo);
+            %Add original surface
+            hpOrig = gpatch(tibiaFibulaShapeModel.F, data.tibia_fibula.V(:,:,caseInd), [200/255 200/255 200/255], 'none', 0.5);
+            %Add predicted surface
+            hpPred = gpatch(tibiaFibulaShapeModel.F, ...
+                    reshape(tibiaFibulaShapeModel.reconstructed(caseInd,:) + tibiaFibulaShapeModel.mean, ...
+                    [3, length(tibiaFibulaShapeModel.mean)/3])', ...
+                    tibiaFibulaShapeModel.pointErrorDistColV(caseInd,:)', 'none', 1);
+            %Interpolate colouring for smoothness
+            hpPred.FaceColor = 'Interp'; colormap viridis
+            %Set axis view
+            axis equal; axis tight; view(0,90);
+            rotate(hpOrig,[0 1 0], surfaceRot(viewNo));
+            rotate(hpPred,[0 1 0], surfaceRot(viewNo));
+            %Set axis parameters
+            camlight headlight; axis off
+            %Add colorbar on last view
+            if viewNo == 4
+                colorbar
+            end
+            %Add title
+            title([viewLabel{viewNo},' View'], 'FontSize', 12);
         end
-        %Add title
-        title([viewLabel{viewNo},' View'], 'FontSize', 12);
+
+        %Export figure
+        export_fig(['figures\reconstructionErrors\',caseID{caseInd},'_reconstructionErrorMap.png'],'-m1');
+        close
+
     end
     
-    %Export figure
-    export_fig(['figures\reconstructionErrors\',caseID{caseInd},'_reconstructionErrorMap.png'],'-m1');
-	close
+    %Place calculations into table
+    tibiaFibulaShapeModel.errorSummaryTable = table(tibiaFibulaShapeModel.pointErrorDistMean, ...
+        tibiaFibulaShapeModel.pointErrorDistMax, ...
+        tibiaFibulaShapeModel.jaccardSimilarity, ...
+        'VariableNames', {'pointErrorDistMean', 'pointErrorDistMax', 'jaccardSimilarity'}, ...
+        'RowNames', caseID);
+    
+    %Export table to file
+    writetable(tibiaFibulaShapeModel.errorSummaryTable, 'results\errorSummaryTable.csv', ...
+        'WriteRowNames', true);
+
+else 
+    
+    %Read in saved table
+    tibiaFibulaShapeModel.errorSummaryTable = readtable('results\errorSummaryTable.csv');
+    
+    %Unpack to structure
+    tibiaFibulaShapeModel.pointErrorDistMean = tibiaFibulaShapeModel.errorSummaryTable.pointErrorDistMean;
+    tibiaFibulaShapeModel.pointErrorDistMax = tibiaFibulaShapeModel.errorSummaryTable.pointErrorDistMax;
+    tibiaFibulaShapeModel.jaccardSimilarity = tibiaFibulaShapeModel.errorSummaryTable.jaccardSimilarity;
     
 end
+    
+%Calculate and display mean and 95% CI's for the mean and peak error, and Jaccard 
+%Mean error
+meanError_m = mean(tibiaFibulaShapeModel.pointErrorDistMean);
+meanError_sd = std(tibiaFibulaShapeModel.pointErrorDistMean);
+meanError_lower95 = meanError_m - (1.96 * (meanError_sd / sqrt(length(caseID))));
+meanError_upper95 = meanError_m + (1.96 * (meanError_sd / sqrt(length(caseID))));
+%Peak error
+maxError_m = mean(tibiaFibulaShapeModel.pointErrorDistMax);
+maxError_sd = std(tibiaFibulaShapeModel.pointErrorDistMax);
+maxError_lower95 = maxError_m - (1.96 * (maxError_sd / sqrt(length(caseID))));
+maxError_upper95 = maxError_m + (1.96 * (maxError_sd / sqrt(length(caseID))));
+%Jaccard similarity
+jaccard_m = mean(tibiaFibulaShapeModel.jaccardSimilarity);
+jaccard_sd = std(tibiaFibulaShapeModel.jaccardSimilarity);
+jaccard_lower95 = jaccard_m - (1.96 * (jaccard_sd / sqrt(length(caseID))));
+jaccard_upper95 = jaccard_m + (1.96 * (jaccard_sd / sqrt(length(caseID))));
+%Display
+disp(['Tibia-fibula shape model reconstruction mean point error (mean +/- 95% CIs) = ',num2str(round(meanError_m,2)), ...
+    '[',num2str(round(meanError_lower95,2)),',',num2str(round(meanError_upper95,2)),']']);
+disp(['Tibia-fibula shape model reconstruction max point error (mean +/- 95% CIs) = ',num2str(round(maxError_m,2)), ...
+    '[',num2str(round(maxError_lower95,2)),',',num2str(round(maxError_upper95,2)),']']);
+disp(['Tibia-fibula shape model Jaccard index (mean +/- 95% CIs) = ',num2str(round(jaccard_m,3)), ...
+    '[',num2str(round(jaccard_lower95,3)),',',num2str(round(jaccard_upper95,3)),']']);
+
+%Create summary figure of error data
+%Create figure
+hfErr = cFigure; hold on
+hfErr.Units = 'centimeters';
+hfErr.Position = [5, 5, 24, 6];
+%Plot mean error data
+%Create subplot
+subplot(1,3,1); hold on
+%Plot mean as dashed line & CIs as dotted lines
+plot([1,length(caseID)], [meanError_m, meanError_m], ...
+    'Color', 'k', 'LineWidth', 2, 'LineStyle', '--');
+plot([1,length(caseID)], [meanError_lower95, meanError_lower95], ...
+    'Color', 'k', 'LineWidth', 1, 'LineStyle', ':');
+plot([1,length(caseID)], [meanError_upper95, meanError_upper95], ...
+    'Color', 'k', 'LineWidth', 1, 'LineStyle', ':');
+%Plot participant data
+scatter(linspace(1,length(caseID), length(caseID)), tibiaFibulaShapeModel.pointErrorDistMean, ...
+    15, 'k', 'filled');
+%Set labels
+xlabel('Participants'); ylabel('Error (mm)'); title('Mean Position Error');
+%Remove ticks
+ax = gca(); ax.XTick = [];
+%Plot max error data
+%Create subplot
+subplot(1,3,2); hold on
+%Plot mean as dashed line & CIs as dotted lines
+plot([1,length(caseID)], [maxError_m, maxError_m], ...
+    'Color', 'k', 'LineWidth', 2, 'LineStyle', '--');
+plot([1,length(caseID)], [maxError_lower95, maxError_lower95], ...
+    'Color', 'k', 'LineWidth', 1, 'LineStyle', ':');
+plot([1,length(caseID)], [maxError_upper95, maxError_upper95], ...
+    'Color', 'k', 'LineWidth', 1, 'LineStyle', ':');
+%Plot participant data
+scatter(linspace(1,length(caseID), length(caseID)), tibiaFibulaShapeModel.pointErrorDistMax, ...
+    15, 'k', 'filled');
+%Set labels
+xlabel('Participants'); ylabel('Error (mm)'); title('Peak Position Error');
+%Remove ticks
+ax = gca(); ax.XTick = [];
+%Plot Jaccard similarity data
+%Create subplot
+subplot(1,3,3); hold on
+%Plot mean as dashed line & CIs as dotted lines
+plot([1,length(caseID)], [jaccard_m, jaccard_m], ...
+    'Color', 'k', 'LineWidth', 2, 'LineStyle', '--');
+plot([1,length(caseID)], [jaccard_lower95, jaccard_lower95], ...
+    'Color', 'k', 'LineWidth', 1, 'LineStyle', ':');
+plot([1,length(caseID)], [jaccard_upper95, jaccard_upper95], ...
+    'Color', 'k', 'LineWidth', 1, 'LineStyle', ':');
+%Plot participant data
+scatter(linspace(1,length(caseID), length(caseID)), tibiaFibulaShapeModel.jaccardSimilarity, ...
+    15, 'k', 'filled');
+%Set labels
+xlabel('Participants'); ylabel('Jaccard Index (0-1)'); title('Jaccard Similarity');
+%Remove ticks
+ax = gca(); ax.XTick = [];
+%Export summary figure
+export_fig('figures\errorSummary\errorSummaryFigure.png','-m2');
+close(hfErr);
 
 %This function can be used to examine the shape effect of a principal
 %component. It creates an interactive animation of increasing/decreasing
 %the score of a specific principal component by a factor of the standard
 %deviation (i.e. the fairly standardised method for interpreting principal
 %components). The below code is defaulting to visualising PC1 over a -3 to
-%+3 standard deviation range.
-% % % animatePrincipalComponent(tibiaFibulaShapeModel, 1, 3);
-
-%After running the above animate function there is an option to export the
-%gif using further GIBBON functionality using the command below. Refer to
-%GIBBON documentation for further details on anim8 functionality.
-% % % exportGifAnim8();
+%+3 standard deviation range, while also exporting the animation as a GIF.
+sdRange = 3;
+for nPC = 1:tibiaFibulaShapeModel.retainPCs
+    %Create animations
+    animatePrincipalComponent(tibiaFibulaShapeModel, nPC, sdRange, true);
+    %Shift to results folder
+    movefile(['PC',num2str(nPC),'_plus-',num2str(sdRange),'SD_animation.gif'], ...
+        ['results\PC',num2str(nPC),'_plus-',num2str(sdRange),'SD_animation.gif'])
+    movefile(['PC',num2str(nPC),'_minus-',num2str(sdRange),'SD_animation.gif'], ...
+        ['results\PC',num2str(nPC),'_minus-',num2str(sdRange),'SD_animation.gif'])
+end
 
 %Save the shape model data
 save('tibiaFibulaShapeModel.mat', 'tibiaFibulaShapeModel');
@@ -751,74 +1002,197 @@ trabShapeModel.reconstructed = ...
     trabShapeModel.loadings(:,1:trabShapeModel.retainPCs)';
 
 %Calculate the distance error between reconstructed and actual points across cases
-for caseInd = 1:length(caseID)
+if calcResults 
     
-    %Calculate point error distance
-    trabShapeModel.pointErrorDist(caseInd,:) = ...
-        distancePoints3d(data.trab_tibia.V(:,:,caseInd), ...
-        reshape((trabShapeModel.reconstructed(caseInd,:) + trabShapeModel.mean),...
-        [3, length(trabShapeModel.mean)/3])');
+    for caseInd = 1:length(caseID)
 
-    %Calculate the mean error
-    trabShapeModel.pointErrorDistMean(caseInd,1) = ...
-        mean(trabShapeModel.pointErrorDist(caseInd,:));
-    
-    %Calculate the peak error
-    trabShapeModel.pointErrorDistMax(caseInd,1) = ...
-        max(trabShapeModel.pointErrorDist(caseInd,:));
-    
-    %Convert distance error to colour scales for visualisation
-    trabShapeModel.pointErrorDistColF(caseInd,:) = vertexToFaceMeasure(trabShapeModel.F, ...
-        trabShapeModel.pointErrorDist(caseInd,:)');
-    trabShapeModel.pointErrorDistColV(caseInd,:) = faceToVertexMeasure(trabShapeModel.F, ...
-        data.trab_tibia.V(:,:,caseInd), ...
-        trabShapeModel.pointErrorDistColF(caseInd,:)'); 
-    
-    %Create visualisation of error
-    %Use subplots to create different perspectives
-    cFigure; hold on;    
-    %Loop through four views to create subplot
-    for viewNo = 1:4    
-        %Create subplot for current view
-        subplot(1,4,viewNo);
-        %Add surface
-        hp = gpatch(trabShapeModel.F, ...
-                reshape(trabShapeModel.reconstructed(caseInd,:) + trabShapeModel.mean, ...
-                [3, length(trabShapeModel.mean)/3])', ...
-                trabShapeModel.pointErrorDistColV(caseInd,:)', 'none', 1);
-        %Interpolate colouring for smoothness
-        hp.FaceColor = 'Interp'; colormap viridis
-        %Set axis view
-        axis equal; axis tight;
-        view(0,90); rotate(hp,[0 1 0], surfaceRot(viewNo));
-        %Set axis parameters
-        camlight headlight; axis off
-        %Add colorbar on last view
-        if viewNo == 4
-            colorbar
+        %Calculate point error distance
+        trabShapeModel.pointErrorDist(caseInd,:) = ...
+            distancePoints3d(data.trab_tibia.V(:,:,caseInd), ...
+            reshape((trabShapeModel.reconstructed(caseInd,:) + trabShapeModel.mean),...
+            [3, length(trabShapeModel.mean)/3])');
+
+        %Calculate the mean error
+        trabShapeModel.pointErrorDistMean(caseInd,1) = ...
+            mean(trabShapeModel.pointErrorDist(caseInd,:));
+
+        %Calculate the peak error
+        trabShapeModel.pointErrorDistMax(caseInd,1) = ...
+            max(trabShapeModel.pointErrorDist(caseInd,:));
+
+        %Convert distance error to colour scales for visualisation
+        trabShapeModel.pointErrorDistColF(caseInd,:) = vertexToFaceMeasure(trabShapeModel.F, ...
+            trabShapeModel.pointErrorDist(caseInd,:)');
+        trabShapeModel.pointErrorDistColV(caseInd,:) = faceToVertexMeasure(trabShapeModel.F, ...
+            data.trab_tibia.V(:,:,caseInd), ...
+            trabShapeModel.pointErrorDistColF(caseInd,:)'); 
+        
+        %Calculate Jaccard index
+        trabShapeModel.jaccardSimilarity(caseInd,1) = ...
+            calcJaccardShapeModel(data.trab_tibia.V(:,:,caseInd), ...
+            reshape((trabShapeModel.reconstructed(caseInd,:) + trabShapeModel.mean), ...
+            [3, length(trabShapeModel.mean)/3])', ...
+            trabShapeModel, 1);
+
+        %Create visualisation of error
+        %Use subplots to create different perspectives
+        cFigure; hold on;    
+        %Loop through four views to create subplot
+        for viewNo = 1:4    
+            %Create subplot for current view
+            subplot(1,4,viewNo);
+            %Add original surface
+            hpOrig = gpatch(trabShapeModel.F, data.trab_tibia.V(:,:,caseInd), [200/255 200/255 200/255], 'none', 0.5);
+            %Add predicted surface
+            hpPred = gpatch(trabShapeModel.F, ...
+                    reshape(trabShapeModel.reconstructed(caseInd,:) + trabShapeModel.mean, ...
+                    [3, length(trabShapeModel.mean)/3])', ...
+                    trabShapeModel.pointErrorDistColV(caseInd,:)', 'none', 1);
+            %Interpolate colouring for smoothness
+            hpPred.FaceColor = 'Interp'; colormap viridis
+            %Set axis view
+            axis equal; axis tight; view(0,90);
+            rotate(hpOrig,[0 1 0], surfaceRot(viewNo));
+            rotate(hpPred,[0 1 0], surfaceRot(viewNo));
+            %Set axis parameters
+            camlight headlight; axis off
+            %Add colorbar on last view
+            if viewNo == 4
+                colorbar
+            end
+            %Add title
+            title([viewLabel{viewNo},' View'], 'FontSize', 12);
         end
-        %Add title
-        title([viewLabel{viewNo},' View'], 'FontSize', 12);
+        
+        %Export figure
+        export_fig(['figures\reconstructionErrors\',caseID{caseInd},'_reconstructionErrorMap.png'],'-m1');
+        close
+
     end
     
-    %Export figure
-    export_fig(['figures\reconstructionErrors\',caseID{caseInd},'_reconstructionErrorMap.png'],'-m1');
-	close
+    %Place calculations into table
+    trabShapeModel.errorSummaryTable = table(trabShapeModel.pointErrorDistMean, ...
+        trabShapeModel.pointErrorDistMax, ...
+        trabShapeModel.jaccardSimilarity, ...
+        'VariableNames', {'pointErrorDistMean', 'pointErrorDistMax', 'jaccardSimilarity'}, ...
+        'RowNames', caseID);
+
+    %Export table to file
+    writetable(trabShapeModel.errorSummaryTable, 'results\errorSummaryTable.csv', ...
+        'WriteRowNames', true);
+
+else 
     
+    %Read in saved table
+    trabShapeModel.errorSummaryTable = readtable('results\errorSummaryTable.csv');
+    
+    %Unpack to structure
+    trabShapeModel.pointErrorDistMean = trabShapeModel.errorSummaryTable.pointErrorDistMean;
+    trabShapeModel.pointErrorDistMax = trabShapeModel.errorSummaryTable.pointErrorDistMax;
+    trabShapeModel.jaccardSimilarity = trabShapeModel.errorSummaryTable.jaccardSimilarity;
+       
 end
+
+%Calculate and display mean and 95% CI's for the mean and peak error, and Jaccard 
+%Mean error
+meanError_m = mean(trabShapeModel.pointErrorDistMean);
+meanError_sd = std(trabShapeModel.pointErrorDistMean);
+meanError_lower95 = meanError_m - (1.96 * (meanError_sd / sqrt(length(caseID))));
+meanError_upper95 = meanError_m + (1.96 * (meanError_sd / sqrt(length(caseID))));
+%Peak error
+maxError_m = mean(trabShapeModel.pointErrorDistMax);
+maxError_sd = std(trabShapeModel.pointErrorDistMax);
+maxError_lower95 = maxError_m - (1.96 * (maxError_sd / sqrt(length(caseID))));
+maxError_upper95 = maxError_m + (1.96 * (maxError_sd / sqrt(length(caseID))));
+%Jaccard similarity
+jaccard_m = mean(trabShapeModel.jaccardSimilarity);
+jaccard_sd = std(trabShapeModel.jaccardSimilarity);
+jaccard_lower95 = jaccard_m - (1.96 * (jaccard_sd / sqrt(length(caseID))));
+jaccard_upper95 = jaccard_m + (1.96 * (jaccard_sd / sqrt(length(caseID))));
+%Display
+disp(['Trabecular shape model reconstruction mean point error (mean +/- 95% CIs) = ',num2str(round(meanError_m,2)), ...
+    '[',num2str(round(meanError_lower95,2)),',',num2str(round(meanError_upper95,2)),']']);
+disp(['Trabecular shape model reconstruction max point error (mean +/- 95% CIs) = ',num2str(round(maxError_m,2)), ...
+    '[',num2str(round(maxError_lower95,2)),',',num2str(round(maxError_upper95,2)),']']);
+disp(['Trabecular shape model Jaccard index (mean +/- 95% CIs) = ',num2str(round(jaccard_m,3)), ...
+    '[',num2str(round(jaccard_lower95,3)),',',num2str(round(jaccard_upper95,3)),']']);
+
+%Create summary figure of error data
+%Create figure
+hfErr = cFigure; hold on
+hfErr.Units = 'centimeters';
+hfErr.Position = [5, 5, 24, 6];
+%Plot mean error data
+%Create subplot
+subplot(1,3,1); hold on
+%Plot mean as dashed line & CIs as dotted lines
+plot([1,length(caseID)], [meanError_m, meanError_m], ...
+    'Color', 'k', 'LineWidth', 2, 'LineStyle', '--');
+plot([1,length(caseID)], [meanError_lower95, meanError_lower95], ...
+    'Color', 'k', 'LineWidth', 1, 'LineStyle', ':');
+plot([1,length(caseID)], [meanError_upper95, meanError_upper95], ...
+    'Color', 'k', 'LineWidth', 1, 'LineStyle', ':');
+%Plot participant data
+scatter(linspace(1,length(caseID), length(caseID)), trabShapeModel.pointErrorDistMean, ...
+    15, 'k', 'filled');
+%Set labels
+xlabel('Participants'); ylabel('Error (mm)'); title('Mean Position Error');
+%Remove ticks
+ax = gca(); ax.XTick = [];
+%Plot max error data
+%Create subplot
+subplot(1,3,2); hold on
+%Plot mean as dashed line & CIs as dotted lines
+plot([1,length(caseID)], [maxError_m, maxError_m], ...
+    'Color', 'k', 'LineWidth', 2, 'LineStyle', '--');
+plot([1,length(caseID)], [maxError_lower95, maxError_lower95], ...
+    'Color', 'k', 'LineWidth', 1, 'LineStyle', ':');
+plot([1,length(caseID)], [maxError_upper95, maxError_upper95], ...
+    'Color', 'k', 'LineWidth', 1, 'LineStyle', ':');
+%Plot participant data
+scatter(linspace(1,length(caseID), length(caseID)), trabShapeModel.pointErrorDistMax, ...
+    15, 'k', 'filled');
+%Set labels
+xlabel('Participants'); ylabel('Error (mm)'); title('Peak Position Error');
+%Remove ticks
+ax = gca(); ax.XTick = [];
+%Plot Jaccard similarity data
+%Create subplot
+subplot(1,3,3); hold on
+%Plot mean as dashed line & CIs as dotted lines
+plot([1,length(caseID)], [jaccard_m, jaccard_m], ...
+    'Color', 'k', 'LineWidth', 2, 'LineStyle', '--');
+plot([1,length(caseID)], [jaccard_lower95, jaccard_lower95], ...
+    'Color', 'k', 'LineWidth', 1, 'LineStyle', ':');
+plot([1,length(caseID)], [jaccard_upper95, jaccard_upper95], ...
+    'Color', 'k', 'LineWidth', 1, 'LineStyle', ':');
+%Plot participant data
+scatter(linspace(1,length(caseID), length(caseID)), trabShapeModel.jaccardSimilarity, ...
+    15, 'k', 'filled');
+%Set labels
+xlabel('Participants'); ylabel('Jaccard Index (0-1)'); title('Jaccard Similarity');
+%Remove ticks
+ax = gca(); ax.XTick = [];
+%Export summary figure
+export_fig('figures\errorSummary\errorSummaryFigure.png','-m2');
+close(hfErr);
 
 %This function can be used to examine the shape effect of a principal
 %component. It creates an interactive animation of increasing/decreasing
 %the score of a specific principal component by a factor of the standard
 %deviation (i.e. the fairly standardised method for interpreting principal
 %components). The below code is defaulting to visualising PC1 over a -3 to
-%+3 standard deviation range.
-% % % animatePrincipalComponent(trabShapeModel, 1, 3);
-
-%After running the above animate function there is an option to export the
-%gif using further GIBBON functionality using the command below. Refer to
-%GIBBON documentation for further details on anim8 functionality.
-% % % exportGifAnim8();
+%+3 standard deviation range, while also exporting the animation as a GIF.
+sdRange = 3;
+for nPC = 1:trabShapeModel.retainPCs
+    %Create animations
+    animatePrincipalComponent(trabShapeModel, nPC, sdRange, true);
+    %Shift to results folder
+    movefile(['PC',num2str(nPC),'_plus-',num2str(sdRange),'SD_animation.gif'], ...
+        ['results\PC',num2str(nPC),'_plus-',num2str(sdRange),'SD_animation.gif'])
+    movefile(['PC',num2str(nPC),'_minus-',num2str(sdRange),'SD_animation.gif'], ...
+        ['results\PC',num2str(nPC),'_minus-',num2str(sdRange),'SD_animation.gif'])
+end
 
 %Save the shape model data
 save('trabShapeModel.mat', 'trabShapeModel');

@@ -1,4 +1,4 @@
-function animatePrincipalComponent(shapeModel, principalComponent, sdRange)
+function animatePrincipalComponent(shapeModel, principalComponent, sdRange, exportAnimation)
 
     %% This function creates an animation of the shape change caused by
     %  manipulating a principal component score
@@ -8,8 +8,7 @@ function animatePrincipalComponent(shapeModel, principalComponent, sdRange)
     %   shapeModel - the data structure containing shape model details
     %   principalComponent - the PC number to manipulate
     %   sdRange - value representing +/- SD range to visualise (default = 3)
-
-    %%%% TODO: use shift to vertex colouring and interpolate in animations...
+    %   exportAnimation - option to export the created animations (default = true)
 
     %Check inputs
     if nargin < 1
@@ -24,7 +23,18 @@ function animatePrincipalComponent(shapeModel, principalComponent, sdRange)
         %Default to +/- 3SD's
         sdRange = 3;
     end
+    if nargin < 4
+        exportAnimation = true
+    end
+    
+    %Set array to rotate views of surfaces later in reconstruction process
+    surfaceRot = [-90, 0, 90, 180];
 
+    %Set list to label reconstruction subplots with
+    viewLabel = [{'Anterior'}, {'Lateral'}, {'Posterior'}, {'Medial'}];
+    
+    %% Reconstruct surfaces across steps of the SD range
+    
     %Set number of PCs
     reconPCs = length(shapeModel.varExplained);
 
@@ -77,53 +87,169 @@ function animatePrincipalComponent(shapeModel, principalComponent, sdRange)
         negC(:,nSD) = pcMinusCV; 
 
     end
-
+    
+    %% Create the plus SD figure
+    
     %Create the basic view to store graphics and initiate animation
-    hf = cFigure;
+    hfPos = cFigure; hold on;
     
-    %Positive SD
-    %Create subplot
-    subplot(1,2,1);
-    %Add title
-    title(['Plus SD for PC',num2str(principalComponent)]);
-    %Add patch data
-    hp_pos = gpatch(shapeModel.F, meanPts, posC(:,1), 'none', 1);
-    %Interpolate colouring for smoothness
-    hp_pos.FaceColor = 'Interp'; colormap viridis
-    %Set axes parameters
-    axis equal; axis tight; view(90,0);
-    camlight headlight; axis off
-    %Set axis limits based on data values
-    axis(axisLim([posV;negV]));
+    %Loop through four views to create subplot
+    for viewNo = 1:4    
+        %Create subplot for current view
+        subplot(1,4,viewNo);
+        %Add patch data
+        posFigHandles.(viewLabel{viewNo}).hp_pos = gpatch(shapeModel.F, meanPts, posC(:,1), 'none', 1);
+        %Interpolate colouring for smoothness
+        posFigHandles.(viewLabel{viewNo}).hp_pos.FaceColor = 'Interp'; colormap viridis
+        %Set axes parameters
+        axis equal; axis tight;
+        view(0,90); rotate(posFigHandles.(viewLabel{viewNo}).hp_pos,[0 1 0], surfaceRot(viewNo));
+        %Set axis parameters
+        camlight headlight; axis off
+        %Add title
+        title([viewLabel{viewNo},' View'], 'FontSize', 12);
+        %Set axis limits based on data values
+        for nSD = 1:length(calcSD)
+            posLim(:,:,nSD) = transformPoint3d(posV(:,:,nSD),createRotationOy(deg2rad(surfaceRot(viewNo))));
+            negLim(:,:,nSD) = transformPoint3d(negV(:,:,nSD),createRotationOy(deg2rad(surfaceRot(viewNo))));
+        end
+        axis(axisLim([posLim;negLim]));
+    end
     
-    %Negative SD
-    %Create subplot
-    subplot(1,2,2);
-    %Add title
-    title(['Minus SD for PC',num2str(principalComponent)]);
-    %Add patch data
-    hp_neg = gpatch(shapeModel.F(:,:,1), meanPts, negC(:,1), 'none', 1);
-    %Interpolate colouring for smoothness
-    hp_neg.FaceColor = 'Interp'; colormap viridis
-    %Set axes parameters
-    axis equal; axis tight; view(90,0); 
-    camlight headlight; axis off
-    %Set axis limits based on data values
-    axis(axisLim([posV;negV]));
-
     %Set up animation
     animStruct.Time = calcSD;
     %Loop through SD points
     for nSD = 1:length(calcSD)
 
         %Set entries into animation structure
-        animStruct.Handles{nSD} = [hp_pos hp_pos hp_neg hp_neg]; %Handles of objects to animate
-        animStruct.Props{nSD} = {'Vertices', 'CData', 'Vertices', 'CData'}; %Properties of objects to animate
-        animStruct.Set{nSD} = {posV(:,:,nSD), posC(:,nSD), negV(:,:,nSD), negC(:,nSD)}; %Property values for to set in order to animate
+        %Handles of objects to animate
+        animStruct.Handles{nSD} = [posFigHandles.(viewLabel{1}).hp_pos posFigHandles.(viewLabel{1}).hp_pos ...
+            posFigHandles.(viewLabel{2}).hp_pos posFigHandles.(viewLabel{2}).hp_pos ...
+            posFigHandles.(viewLabel{3}).hp_pos posFigHandles.(viewLabel{3}).hp_pos ...
+            posFigHandles.(viewLabel{4}).hp_pos posFigHandles.(viewLabel{4}).hp_pos];
+        %Properties of objects to animate
+        animStruct.Props{nSD} = {'Vertices', 'CData', ...
+            'Vertices', 'CData', ...
+            'Vertices', 'CData', ...
+            'Vertices', 'CData'};
+        %Property values for to set in order to animate
+        animStruct.Set{nSD} = {transformPoint3d(posV(:,:,nSD),createRotationOy(deg2rad(surfaceRot(1)))), posC(:,nSD), ...
+            transformPoint3d(posV(:,:,nSD),createRotationOy(deg2rad(surfaceRot(2)))) posC(:,nSD), ...
+            transformPoint3d(posV(:,:,nSD),createRotationOy(deg2rad(surfaceRot(3)))), posC(:,nSD), ...
+            transformPoint3d(posV(:,:,nSD),createRotationOy(deg2rad(surfaceRot(4)))), posC(:,nSD)}; 
 
     end
-
+    
+    %Set labelling option
+    animStruct.labelOption = 'SD';
+    
+    %Add overall figure title
+    sgtitle(['Surface Shape Change from PC',num2str(principalComponent),' with +SD'],...
+        'FontSize', 16, 'FontWeight', 'bold')
+    
     %Animate figure
-    anim8(hf, animStruct);
+    anim8_labelOption(hfPos, animStruct);
+    
+    %Export if desired
+    if exportAnimation
+        
+        %Export animation
+        exportGifAnim8();
+        
+        %Unpack from export folder and rename
+        %Get name of file in export folder
+        fDir = dir('efw');
+        %Move file
+        movefile(['efw\',fDir(end).name], ...
+            ['PC',num2str(principalComponent),'_plus-',num2str(sdRange),'SD_animation.gif']);
+        %Remove export directory
+        rmdir('efw');
+        
+    end
+    
+    %Close figure
+    close(hfPos);
+    
+    %% Create the negative SD figure
+    
+    %Create the basic view to store graphics and initiate animation
+    hfNeg = cFigure; hold on;
+    
+    %Loop through four views to create subplot
+    for viewNo = 1:4    
+        %Create subplot for current view
+        subplot(1,4,viewNo);
+        %Add patch data
+        negFigHandles.(viewLabel{viewNo}).hp_neg = gpatch(shapeModel.F, meanPts, posC(:,1), 'none', 1);
+        %Interpolate colouring for smoothness
+        negFigHandles.(viewLabel{viewNo}).hp_neg.FaceColor = 'Interp'; colormap viridis
+        %Set axes parameters
+        axis equal; axis tight;
+        view(0,90); rotate(negFigHandles.(viewLabel{viewNo}).hp_neg,[0 1 0], surfaceRot(viewNo));
+        %Set axis parameters
+        camlight headlight; axis off
+        %Add title
+        title([viewLabel{viewNo},' View'], 'FontSize', 12);
+        %Set axis limits based on data values
+        for nSD = 1:length(calcSD)
+            posLim(:,:,nSD) = transformPoint3d(posV(:,:,nSD),createRotationOy(deg2rad(surfaceRot(viewNo))));
+            negLim(:,:,nSD) = transformPoint3d(negV(:,:,nSD),createRotationOy(deg2rad(surfaceRot(viewNo))));
+        end
+        axis(axisLim([posLim;negLim]));
+    end
+    
+    %Set up animation
+    animStruct.Time = calcSD;
+    %Loop through SD points
+    for nSD = 1:length(calcSD)
+
+        %Set entries into animation structure
+        %Handles of objects to animate
+        animStruct.Handles{nSD} = [negFigHandles.(viewLabel{1}).hp_neg negFigHandles.(viewLabel{1}).hp_neg ...
+            negFigHandles.(viewLabel{2}).hp_neg negFigHandles.(viewLabel{2}).hp_neg ...
+            negFigHandles.(viewLabel{3}).hp_neg negFigHandles.(viewLabel{3}).hp_neg ...
+            negFigHandles.(viewLabel{4}).hp_neg negFigHandles.(viewLabel{4}).hp_neg];
+        %Properties of objects to animate
+        animStruct.Props{nSD} = {'Vertices', 'CData', ...
+            'Vertices', 'CData', ...
+            'Vertices', 'CData', ...
+            'Vertices', 'CData'};
+        %Property values for to set in order to animate
+        animStruct.Set{nSD} = {transformPoint3d(negV(:,:,nSD),createRotationOy(deg2rad(surfaceRot(1)))), negC(:,nSD), ...
+            transformPoint3d(negV(:,:,nSD),createRotationOy(deg2rad(surfaceRot(2)))) negC(:,nSD), ...
+            transformPoint3d(negV(:,:,nSD),createRotationOy(deg2rad(surfaceRot(3)))), negC(:,nSD), ...
+            transformPoint3d(negV(:,:,nSD),createRotationOy(deg2rad(surfaceRot(4)))), negC(:,nSD)}; 
+
+    end
+    
+    %Set labelling option
+    animStruct.labelOption = 'SD';
+    
+    %Add overall figure title
+    sgtitle(['Surface Shape Change from PC',num2str(principalComponent),' with -SD'],...
+        'FontSize', 16, 'FontWeight', 'bold')
+    
+    %Animate figure
+    anim8_labelOption(hfNeg, animStruct);
+    
+    %Export if desired
+    if exportAnimation
+        
+        %Export animation
+        exportGifAnim8();
+        
+        %Unpack from export folder and rename
+        %Get name of file in export folder
+        fDir = dir('efw');
+        %Move file
+        movefile(['efw\',fDir(end).name], ...
+            ['PC',num2str(principalComponent),'_minus-',num2str(sdRange),'SD_animation.gif']);
+        %Remove export directory
+        rmdir('efw');
+        
+    end
+    
+    %Close figure
+    close(hfNeg);
     
 end
