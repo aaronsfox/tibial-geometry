@@ -305,18 +305,18 @@ end
 
 %Calculate and display mean and 95% CI's for the mean and peak error
 %Mean & SD for mean error
-meanError_m = mean(pointErrorDistMean);
-meanError_sd = std(pointErrorDistMean);
+meanError_m = mean(trabecularErrorSummary.pointErrorDistMean);
+meanError_sd = std(trabecularErrorSummary.pointErrorDistMean);
 meanError_lower95 = meanError_m - (1.96 * (meanError_sd / sqrt(length(leaveOut))));
 meanError_upper95 = meanError_m + (1.96 * (meanError_sd / sqrt(length(leaveOut))));
 %Mean & SD for maxerror
-maxError_m = mean(pointErrorDistMax);
-maxError_sd = std(pointErrorDistMax);
+maxError_m = mean(trabecularErrorSummary.pointErrorDistMax);
+maxError_sd = std(trabecularErrorSummary.pointErrorDistMax);
 maxError_lower95 = maxError_m - (1.96 * (maxError_sd / sqrt(length(leaveOut))));
 maxError_upper95 = maxError_m + (1.96 * (maxError_sd / sqrt(length(leaveOut))));
 %Jaccard similarity
-jaccard_m = mean(jaccardSimilarity);
-jaccard_sd = std(jaccardSimilarity);
+jaccard_m = mean(trabecularErrorSummary.jaccardSimilarity);
+jaccard_sd = std(trabecularErrorSummary.jaccardSimilarity);
 jaccard_lower95 = jaccard_m - (1.96 * (jaccard_sd / sqrt(length(caseID))));
 jaccard_upper95 = jaccard_m + (1.96 * (jaccard_sd / sqrt(length(caseID))));
 %Display
