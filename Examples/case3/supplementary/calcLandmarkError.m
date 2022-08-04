@@ -34,7 +34,7 @@ function [sumError] = calcLandmarkError(pcScores, shapeModel, sampleLandmarks, s
             reconstructedV(shapeModelLandmarkInds.(landmarkNames{landmarkNo}),:);        
     end
         
-    %Visualise original vs. reconstructed and landmarks
+% % %     %Visualise original vs. reconstructed and landmarks
 % % %     cFigure; hold on;
 % % %     %Reconstructed shape
 % % %     gpatch(shapeModel.F, reconstructedV, 'bw', 'none', 0.3);
@@ -45,13 +45,32 @@ function [sumError] = calcLandmarkError(pcScores, shapeModel, sampleLandmarks, s
 % % %     end
 % % %     axisGeom; camlight headlight
     
+    %% Realign shape model reconstruction to original landmarks
+    
+    %Extract landmarks into array
+    for landmarkNo = 1:length(landmarkNames)
+        reconLandmarks(landmarkNo,:) = reconstructedLandmarks.(landmarkNames{landmarkNo});
+        origLandmarks(landmarkNo,:) = sampleLandmarks.(landmarkNames{landmarkNo});
+    end
+    
+    %Rigidly align the reconstructed landmarks to the original
+    [~, Z] = procrustes(origLandmarks, reconLandmarks,...
+        'Scaling', false, 'Reflection', false);
+    
+    %Extract out the transformed landmarks to a named structure
+    for landmarkNo = 1:length(landmarkNames)
+        reconstructedAlignedLandmarks.(landmarkNames{landmarkNo}) = Z(landmarkNo,:);
+    end
+    
+    %% Calculate landmark error
+    
     %Calculate error between sample landmarks and shape model landmarks
     for landmarkNo = 1:length(landmarkNames)
         reconError(landmarkNo) = distancePoints3d(sampleLandmarks.(landmarkNames{landmarkNo}), ...
-            reconstructedLandmarks.(landmarkNames{landmarkNo}));
+            reconstructedAlignedLandmarks.(landmarkNames{landmarkNo}));
     end
     
-    %Calculate mean error across points
+    %Calculate sum of error across points
     sumError = sum(reconError);
     
 end
