@@ -128,12 +128,6 @@ function [trabV] = alignTrabecularModel(tibiaV, tibiaShapeModel, predictedV, tra
   
     end
     
-% % %     %Check final points step
-% % %     tibiaPtsInNew = intriangulation(alignedPredictedV, trabShapeModel.F, tibiaV, 0);
-% % %     if sum(tibiaPtsInNew) > 0
-% % %         error('Something has gone wrong with tibia points staying outside of trabecular...whoops...')
-% % %     end
-    
     %% Store data to output faces and vertices variables
     
     %Set outputs

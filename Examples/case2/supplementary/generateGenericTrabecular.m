@@ -17,9 +17,6 @@ function [F, V] = generateGenericTrabecular(tibiaV, shapeModel, corticalThicknes
     
     %% Create internal surface
     
-% % %     %Set volume factor for meshing
-% % %     volumeFactor = 2;
-    
     %Remesh surface
     [tibiaF, tibiaV] = ggremesh(shapeModel.F, tibiaV, opts);
     [tibiaF, tibiaV] = mergeVertices(tibiaF, tibiaV);

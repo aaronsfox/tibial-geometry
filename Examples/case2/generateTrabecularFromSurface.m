@@ -131,6 +131,8 @@ for predictCase = 1:length(leaveOut)
 end
 
 % % % %Create a scatter subplot of the predicted trabecular PCs
+% % % %This gives a demonstration of how well (or not) the tibia PCs predict the
+% % % %trabecular PC score
 % % % f = figure; f.Position = [100 100 1080 800];
 % % % for predictPC = 1:trabShapeModel.retainPCs
 % % %     
@@ -422,19 +424,15 @@ for predictPC = 1:trabShapeModel.retainPCs
     T = evalc('disp(finalLinearModel{predictPC})');
     fprintf(fid, T);
     fclose(fid);
-    
-% % %     %Display model output
-% % %     finalLinearModel{predictPC}
-
-% % %     %Plot model
-% % %     figure; plot(finalLinearModel{predictPC});
 
 end
 
 %% Apply trabecular prediction to a new surface
+%  Note that here we randomly select one surface from the dataset, but this
+%  can be changed to another from the dataset. Alternatively, any .stl
+%  surface similar to this example could be used.
 
 %Select a random surface from the Nolte et al. dataset
-%%%% NOTE: this can be changed to select a different surface
 rng(12345)
 sampleNo = randi([1,35],1,1);
 
@@ -472,12 +470,6 @@ end
 [tibiaF, tibiaV] = patchCleanUnused(tibFibF(logicKeep,:), tibFibV);
 [fibulaF, fibulaV] = patchCleanUnused(tibFibF(~logicKeep,:), tibFibV);
 
-% % % %Visualise
-% % % cFigure; hold on
-% % % gpatch(tibiaF,tibiaV,'gw', 'none')
-% % % gpatch(fibulaF,fibulaV,'bw', 'none')
-% % % axisGeom; camlight headlight
-
 %Remesh the surfaces to match the shape model points
 [tibiaF,tibiaV] = ggremesh(tibiaF, tibiaV, optionStruct_tib);
 
@@ -514,6 +506,7 @@ close
 
 %%%%% NOTE: a final step here might be to transform the predicted
 %%%%% trabecular back to the original surfaces coordinates via a rigid
-%%%%% transformation
+%%%%% transformation so the trabecular fits the position of the original
+%%%%% surface.
 
 %% ----- end of generateTrabecularFromSurface.m ----- %%
