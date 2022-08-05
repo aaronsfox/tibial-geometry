@@ -243,9 +243,6 @@ function [reconstructed] = simulatedPopulation(nSamples, shapeModel, selectPCs, 
         fig.Units = 'centimeters';
         %Set the figure position/size
         fig.Position = [0,0,round(tiledlayoutsq)*2.5,ceil(tiledlayoutsq)*4];
-        %Make it relative to round(tiledLayoutsq)
-        %round(tiledLayoutsq)*2.5 fpr width
-        %ceil(tiledLayoutsq)* 4 for height
         
         %create subplot with minimal padding and tight tile spacing
         tiledlayout(ceil(tiledlayoutsq), round(tiledlayoutsq),'TileSpacing','none', 'Padding', 'tight');
