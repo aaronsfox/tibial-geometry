@@ -12,38 +12,16 @@ This example case uses both the tibia and trabecular shape model created from th
 
 There are various scenarios where an adequate model of the cortical and trabecular surfaces is required. Finite element simulations of tibial stress during running is one example, where including the different material properties of these different bone areas is a part of the simulation process (e.g. Edwards et al. 2010; Haider et al. 2020).
 
-
-
-
-
-NOTES:
-
-- Approach here is to demonstrate how to generate a volumetric trabecular mesh of the tibia from a tibia or tibia-fibula surface mesh and the relevant surface shape models
-- 
-
-
-
-
-
-DEPENDENCIES:
-
-- GIBBON toolbox
-- geom3d
-- nonrigidICP from https://au.mathworks.com/matlabcentral/fileexchange/41396-nonrigidicp (with some edits to suppress the visualisations)
-- intriangulation from https://au.mathworks.com/matlabcentral/fileexchange/43381-intriangulation-vertices-faces-testp-heavytest
-
-
-
 ## Code
 
-- **TODO.m:** ...
+- **generateTrabecularFromSurface.m:** This is the main script associated with this example case, and runs through the processes of: (i) developing a set of linear regression models for predicting trabecular shape model scores from the tibial shape model scores; (ii) comparing predicted reconstructions with the original surfaces as a means of evaluating these models; and (iii) predicting the trabecular shape of a new surface from Nolte et al. (2016).
 
-
-
-
+The **supplementary** folder includes a series of external and custom functions used within the main script for various steps. Where using these external code sources for your own work, please cite the original authors of these works.
 
 ## References
 
 Edwards et al. (2010). Effects of running speed on a probabilistic stress fracture model. *Clin Biomech*, 25: 372-377.
 
 Haider et al. (2020). Subject-specific finite element models of the tibia with realistic boundary conditions predict bending deformations consistent with in vivo measurement. *J Biomech Eng*, 142: 021010. 
+
+Nolte et al. (2016). Non-linear scaling of a musculoskeletal model of the lower limb using statistical shape models. *J Biomech*, 49: 3576-3581.
