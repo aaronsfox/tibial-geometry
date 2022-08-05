@@ -23,8 +23,6 @@
 %Default to false as this takes time
 runReconstructions = false;
 
-%%%%%%% TODO: include this conditional throughout code
-
 %% Set-up
 
 %Set home directory
@@ -167,12 +165,6 @@ if runReconstructions
             [fibulaF, fibulaV] = patchCleanUnused(tibFibF(logicKeep,:), tibFibV);
         end
 
-% % %         %Visualise
-% % %         cFigure; hold on
-% % %         gpatch(tibiaF,tibiaV,'gw', 'none')
-% % %         gpatch(fibulaF,fibulaV,'bw', 'none')
-% % %         axisGeom; camlight headlight
-
         %Remesh surfaces
 
         %Run initial smoothing on surfaces
@@ -230,15 +222,6 @@ if runReconstructions
         [sampleLandmarks, tibiaV, fibulaV] = ...
             alignLandmarksSurfaces(sampleLandmarks, tibiaV, fibulaV);
 
-% % %         %Visualise sample model and landmarks
-% % %         cFigure; hold on
-% % %         gpatch(tibiaF,tibiaV,'gw','k', 0.5)
-% % %         gpatch(fibulaF,fibulaV,'bw','k', 0.5)
-% % %         for landmarkNo = 1:length(sampleLandmarkNames)
-% % %             plotV(sampleLandmarks.(sampleLandmarkNames{landmarkNo}), 'r.','MarkerSize', 25);
-% % %         end
-% % %         axisGeom; camlight headlight
-
         %Create new landmarks on tibial anterior and fibula lateral border for sample
         [sampleLandmarks, sampleLandmarkNames] = createBoneBorderLandmarks_sample(...
             sampleLandmarks, sampleLandmarkNames, palpableLandmarks, ...
@@ -261,56 +244,6 @@ if runReconstructions
 
         %Create the function handle for the optimisation
         optFunc = @(pcScores)calcLandmarkError(pcScores, tibiaFibulaShapeModel, sampleLandmarks, modelLandmarkInds);
-
-% % %         %Register the new surface against the shape model mean to create an
-% % %         %appropriate initial guess
-% % % 
-% % %         %Rigidly register the tibia and fibula to the mean of the shape model
-% % %         %to perform rough initial alignment
-% % %         [cpdTformRig] = cpd_register(tibiaFibulaShapeModel.meanPoints, [tibiaV; fibulaV], optCPD_rig);
-% % % 
-% % %         %Replace the tibia and fibula points with the rigidly registered
-% % %         tibiaV = cpdTformRig.Y(1:optionStruct_tib.nb_pts,:);
-% % %         fibulaV = cpdTformRig.Y(optionStruct_tib.nb_pts+1:end,:);
-% % % 
-% % %         %Perform non-rigid registration using CPD to map new surface to shape model
-% % %         [cpdTformIG_tib] = cpd_register(tibiaFibulaShapeModel.meanPoints(1:optionStruct_tib.nb_pts,:), tibiaV, optCPD);
-% % %         [cpdTformIG_fib] = cpd_register(tibiaFibulaShapeModel.meanPoints(optionStruct_tib.nb_pts+1:end,:), fibulaV, optCPD);
-% % % 
-% % %         %Identify the matching points in the target mesh against the
-% % %         %registration to identify the corresponding point indices
-% % %         regSortIdxIG_tib = knnsearch(cpdTformIG_tib.Y, tibiaFibulaShapeModel.meanPoints(1:optionStruct_tib.nb_pts,:));
-% % %         regSortIdxIG_fib = knnsearch(cpdTformIG_fib.Y, tibiaFibulaShapeModel.meanPoints(optionStruct_tib.nb_pts+1:end,:));
-% % % 
-% % %         %Sort the registered points so they align with the reference mesh
-% % %         igDataReg_tib = tibiaV(regSortIdxIG_tib,:);
-% % %         igDataReg_fib = fibulaV(regSortIdxIG_fib,:);
-% % % 
-% % %         %Reshape the registered data points and remove the mean
-% % %         igData = reshape([igDataReg_tib;igDataReg_fib]', ...
-% % %             [1, length([igDataReg_tib;igDataReg_fib])*3]) - tibiaFibulaShapeModel.mean;
-% % %         
-% % %         %Project the new data against the loadings to find the estimated PC
-% % %         %scores for each component
-% % %         for nPC = 1:tibiaFibulaShapeModel.retainPCs
-% % %             %Calculate scores and set to an initial guess variable
-% % %             x0(nPC,1) = dot(tibiaFibulaShapeModel.loadings(:,nPC), igData);
-% % %         end
-
-% % %         %Project the new data against the loadings to find the estimated scores
-% % %         %Set the upper and lower bounds on the PC score variables within the optimisation
-% % %         %Here we set them as -5 / +5 standard deviations about the PC score mean (i.e. zero)
-% % %         %An initial guess of the mean (i.e. zero) is also set here
-% % %         sdRange = 5;
-% % %         %Loop through retained PCs
-% % %         for nPC = 1:tibiaFibulaShapeModel.retainPCs
-% % %             %Calculate scores and set to an initial guess variable
-% % %             x0(nPC,1) = dot(tibiaFibulaShapeModel.loadings(:,nPC), igData);
-% % %             %Set the lower bound
-% % %             lb(nPC,1) = std(tibiaFibulaShapeModel.score(:,nPC)) * -sdRange;
-% % %             %Set the upper bound
-% % %             ub(nPC,1) = std(tibiaFibulaShapeModel.score(:,nPC)) * sdRange;
-% % %         end
 
         %Set the upper and lower bounds on the PC score variables within the optimisation
         %Here we set them as -5 / +5 standard deviations about the PC score mean (i.e. zero)
@@ -336,11 +269,6 @@ if runReconstructions
         %Run the optimisation to get the PC scores that miniises the difference
         %between the sample and shape model landmarks
         [optPcScores, landmarkError] = fmincon(optFunc, x0, [], [], [], [], lb, ub, [], fminconOpts);
-
-% % %         %Reconstruct the surfaces using the projected PC scores
-% % %         optReconstructed = x0(1:tibiaFibulaShapeModel.retainPCs)' * ...
-% % %             tibiaFibulaShapeModel.loadings(:,1:tibiaFibulaShapeModel.retainPCs)' + ...
-% % %             tibiaFibulaShapeModel.mean;
 
         %Reconstruct using the optimised PC scores
         optReconstructed = optPcScores(1:tibiaFibulaShapeModel.retainPCs)' * ...
@@ -373,23 +301,9 @@ if runReconstructions
         [cpdTformTib,regSortIdxTib] = cpd_register(tibiaReconstructedV, tibiaV, optCPD);
         [cpdTformFib,regSortIdxFib] = cpd_register(fibulaReconstructedV, fibulaV, optCPD);
 
-% % %         %Identify the matching points in the target mesh against the
-% % %         %registration to identify the corresponding point indices
-% % %         regSortIdxTib = knnsearch(cpdTformTib.Y, tibiaV);
-% % %         regSortIdxFib = knnsearch(cpdTformFib.Y, fibulaV);
-
         %Sort the registered points so they align with the reference mesh
         tibiaReconstructedV = tibiaReconstructedV(regSortIdxTib,:);
         fibulaReconstructedV = fibulaReconstructedV(regSortIdxFib,:);
-        
-% % %         %Rigidly register the reconstructed tibia and fibula to the
-% % %         %original surface to quantify error
-% % %         [cpdTformRig] = cpd_register([tibiaV; fibulaV], ...
-% % %             [tibiaReconstructedV; fibulaReconstructedV], optCPD_rig);
-% % %         
-% % %         %Replace the tibia and fibula points with the rigidly registered
-% % %         tibiaReconstructedV = cpdTformRig.Y(1:optionStruct_tib.nb_pts,:);
-% % %         fibulaReconstructedV = cpdTformRig.Y(optionStruct_tib.nb_pts+1:end,:);
 
 % % %         %Visualise original vs. reconstructed
 % % %         cFigure; hold on;
@@ -513,10 +427,6 @@ if runReconstructions
         'VariableNames', {'landmarkErrorDistSum', 'landmarkErrorDistMean', 'pointErrorDistTibMean', 'pointErrorDistFibMean', 'pointErrorDistTibMax', ...
         'pointErrorDistFibMax', 'jaccardSimilarityTibia', 'jaccardSimilarityFibula', 'jaccardSimilarityAll'}, ...
         'RowNames', sampleNames);
-    
-    %%%%% TODO: review the second run through of results...working better
-    %%%%% without the optimisation, but still some issues mainly with
-    %%%%% fibula volumetric meshing to calculate Jaccard value
 
     %Export table to file
     writetable(reconstructionErrorSummary.errorSummaryTable, 'results\errorSummaryTable.csv', ...
