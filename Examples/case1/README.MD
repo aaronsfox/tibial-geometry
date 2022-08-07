@@ -2,14 +2,6 @@
 
 *We recommend downloading a Markdown reader like [Typora](https://typora.io/) to view the readme files within this dataset.*
 
-## Dependencies
-
-A series of external dependencies are required to run the code associated with this example. These are: 
-
-- [GIBBON](https://www.gibboncode.org/): used to prepare and analyse the 3D surface data
-- [geom3d](https://au.mathworks.com/matlabcentral/fileexchange/24484-geom3d): used to simplify the process of applying 3D geometric calculations
-- [export_fig](https://au.mathworks.com/matlabcentral/fileexchange/23629-export_fig): used to export high resolution figures from MATLAB
-
 ## Background
 
 This example case uses uses the SSM of the tibia-fibula to create a sample set of tibia-fibula surfaces representing standardized variation across all and/or a selection of the model components. The practical basis for this is that there are many scenarios where collecting imaging (e.g. CT scans) to develop a large sample of bone models is unattainable due to prohibitive access or costs. Providing a method to develop surface models of the tibia-fibula increases access to research using three-dimensional models. This code can be used to produce a representative sample of surfaces or a ‘simulated population.’ Further, this example provides the ability to manipulate specific components of the shape models allowing samples to be generated with isolated geometric variations of interest.
