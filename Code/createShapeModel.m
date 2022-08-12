@@ -43,8 +43,8 @@ cd('..\Segmentation\');
 
 %Grab the case names
 f = dir();
-for ff = 3:length(f)
-    caseID{ff-2} = f(ff).name;
+for ff = 4:length(f)
+    caseID{ff-3} = f(ff).name;
 end
 
 %Set options for remeshing
@@ -684,7 +684,7 @@ xlabel('Participants'); ylabel('Jaccard Index (0-1)'); title('Jaccard Similarity
 %Remove ticks
 ax = gca(); ax.XTick = [];
 %Export summary figure
-export_fig('figures\errorSummary\errorSummaryFigure.png','-m2');
+export_fig('figures\errorSummary\errorSummaryFigure.png','-m5');
 close(hfErr);
 
 %This function can be used to examine the shape effect of a principal
@@ -929,7 +929,7 @@ xlabel('Participants'); ylabel('Jaccard Index (0-1)'); title('Jaccard Similarity
 %Remove ticks
 ax = gca(); ax.XTick = [];
 %Export summary figure
-export_fig('figures\errorSummary\errorSummaryFigure.png','-m2');
+export_fig('figures\errorSummary\errorSummaryFigure.png','-m5');
 close(hfErr);
 
 %This function can be used to examine the shape effect of a principal
@@ -1174,7 +1174,7 @@ xlabel('Participants'); ylabel('Jaccard Index (0-1)'); title('Jaccard Similarity
 %Remove ticks
 ax = gca(); ax.XTick = [];
 %Export summary figure
-export_fig('figures\errorSummary\errorSummaryFigure.png','-m2');
+export_fig('figures\errorSummary\errorSummaryFigure.png','-m5');
 close(hfErr);
 
 %This function can be used to examine the shape effect of a principal

@@ -49,8 +49,8 @@ cd('..\..\Segmentation\');
 
 %Grab the case names
 f = dir();
-for ff = 3:length(f)
-    caseID{ff-2} = f(ff).name;
+for ff = 4:length(f)
+    caseID{ff-3} = f(ff).name;
 end
 
 %Return to home directory
@@ -246,7 +246,7 @@ if runReconstructions
         end
 
         %Export figure
-        export_fig(['figures\predictedReconstructionError\',caseID{predictCase},'_predictedReconstructionErrorMap.png'],'-m1');
+        export_fig(['figures\predictedReconstructionError\',caseID{predictCase},'_predictedReconstructionErrorMap.png'],'-m2');
         close
 
         %Save predicted surface as an STL
@@ -386,7 +386,7 @@ xlabel('Participants'); ylabel('Jaccard Index (0-1)'); title('Jaccard Similarity
 %Remove ticks
 ax = gca(); ax.XTick = [];
 %Export summary figure
-export_fig('figures\errorSummary\errorSummaryFigure.png','-m2');
+export_fig('figures\errorSummary\errorSummaryFigure.png','-m5');
 close(hfErr);
 
 %Create the final linear models using all cases
@@ -501,7 +501,7 @@ end
 % % %         'FontSize', 16, 'FontWeight', 'bold')
 
 %Export figure
-export_fig(['figures\newTrabecularPredictions\',pID,'_predictedTrabecular.png'],'-m1');
+export_fig(['figures\newTrabecularPredictions\',pID,'_predictedTrabecular.png'],'-m2');
 close
 
 %%%%% NOTE: a final step here might be to transform the predicted

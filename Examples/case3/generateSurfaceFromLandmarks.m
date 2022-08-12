@@ -377,7 +377,7 @@ if runReconstructions
         end
 
         %Export figure
-        export_fig(['figures\reconstructionError\',pID,'_reconstructionErrorMap.png'],'-m1');
+        export_fig(['figures\reconstructionError\',pID,'_reconstructionErrorMap.png'],'-m2');
         close
 
         %Save predicted surface as an STL
@@ -700,7 +700,7 @@ xlabel('Samples'); ylabel('Jaccard Index (0-1)'); title('Jaccard Similarity (Fib
 ax = gca(); ax.XTick = []; ax.XLim = [0,37];
 
 %Export summary figure
-export_fig('figures\errorSummary\errorSummaryFigure.png','-m2');
+export_fig('figures\errorSummary\errorSummaryFigure.png','-m3');
 close(hfErr);
 
 %% ----- end of generateSurfaceFromLandmarks.m ----- %%
