@@ -1,4 +1,4 @@
-function [jaccardSimilarity] = calcJaccardShapeModel(actualV, predictedV, shapeModel, nParts)
+function [jaccardSimilarity] = calcJaccardShapeModel(actualV, predictedV, shapeModel, nParts, preSplit, noNodesPart1)
 
     %% Function to calculate the Jaccard index - i.e. a measure of volume
     %  consistency - between the actual surface and reconsturcted surface.
@@ -11,18 +11,44 @@ function [jaccardSimilarity] = calcJaccardShapeModel(actualV, predictedV, shapeM
     %       predictedV - n x 3 array of the XYZ points of the predicted surface
     %       shapeModel - the structure with shape model data for the surface 
     %       nParts - options of 1 or 2 for single bone vs. dual surfaces
+    %       preSplitFaces - only relevant for 2 part option. True if faces are already split into F1 & F2 structures
+    %       noNodesPart1 - only relevant for 2 part options that have split faces. Identifies number of nodes to split parts by.
     
     if nParts == 2
+        
+        if preSplit
+            
+            %Extract nodes and faces
+            
+            %Actual
+            %Part 1
+            actualF1 = shapeModel.F1;
+            actualV1 = actualV(1:noNodesPart1,:);
+            %Part 2
+            actualF2 = shapeModel.F2;
+            actualV2 = actualV(noNodesPart1+1:end,:);
+            
+            %Predicted
+            %Part 1
+            predictedF1 = shapeModel.F1;
+            predictedV1 = predictedV(1:noNodesPart1,:);
+            %Part 2
+            predictedF2 = shapeModel.F2;
+            predictedV2 = predictedV(noNodesPart1+1:end,:);            
+            
+        else
     
-        %Group surfaces
-        %Actual
-        [groupIndexVertices,groupIndexFaces] = groupVertices(shapeModel.F, actualV,0);        
-        [actualF1, actualV1] = patchCleanUnused(shapeModel.F(groupIndexFaces == 1,:), actualV);
-        [actualF2, actualV2] = patchCleanUnused(shapeModel.F(groupIndexFaces == 2,:), actualV);
-        %Predicted
-        [groupIndexVertices,groupIndexFaces] = groupVertices(shapeModel.F, predictedV,0);        
-        [predictedF1, predictedV1] = patchCleanUnused(shapeModel.F(groupIndexFaces == 1,:), predictedV);
-        [predictedF2, predictedV2] = patchCleanUnused(shapeModel.F(groupIndexFaces == 2,:), predictedV);
+            %Group surfaces
+            %Actual
+            [groupIndexVertices,groupIndexFaces] = groupVertices(shapeModel.F, actualV,0);        
+            [actualF1, actualV1] = patchCleanUnused(shapeModel.F(groupIndexFaces == 1,:), actualV);
+            [actualF2, actualV2] = patchCleanUnused(shapeModel.F(groupIndexFaces == 2,:), actualV);
+            %Predicted
+            [groupIndexVertices,groupIndexFaces] = groupVertices(shapeModel.F, predictedV,0);        
+            [predictedF1, predictedV1] = patchCleanUnused(shapeModel.F(groupIndexFaces == 1,:), predictedV);
+            [predictedF2, predictedV2] = patchCleanUnused(shapeModel.F(groupIndexFaces == 2,:), predictedV);
+            
+        end
 
         %Set ggremesh options structure
         opts1.nb_pts = length(actualV1); %Set desired number of points

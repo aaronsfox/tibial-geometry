@@ -968,7 +968,7 @@ cd('..');
 %% Tibia-trabecular shape model ***UPDATED***
 
 %Navigate into shape model directory
-cd('trabecular-tibia');
+cd('tibia-plus-trabecular');
 
 %Loop through case ID's and reshape data for PCA
 for caseInd = 1:length(caseID)
@@ -978,35 +978,35 @@ for caseInd = 1:length(caseID)
         data.trab_tibia.V(:,:,caseInd)];
     
     %Reshape data
-    trabShapeModel.nodes(caseInd,:) = reshape(nodeData', ...
+    tibTrabShapeModel.nodes(caseInd,:) = reshape(nodeData', ...
         optionStruct_tib.nb_pts*3*2, [])';
     
 end
 
 %Run PCA to create shape model
-[trabShapeModel.loadings, trabShapeModel.score, ...
-    trabShapeModel.latent, ~, trabShapeModel.varExplained, ...
-    trabShapeModel.mean] = pca(trabShapeModel.nodes);
+[tibTrabShapeModel.loadings, tibTrabShapeModel.score, ...
+    tibTrabShapeModel.latent, ~, tibTrabShapeModel.varExplained, ...
+    tibTrabShapeModel.mean] = pca(tibTrabShapeModel.nodes);
 
 %Create new faces variable to visualise
 %We'll create two separate faces given the split model
-trabShapeModel.F1 = data.tibia.F(:,:,1);
-trabShapeModel.F2 = data.trab_tibia.F(:,:,1);
+tibTrabShapeModel.F1 = data.tibia.F(:,:,1);
+tibTrabShapeModel.F2 = data.trab_tibia.F(:,:,1);
 
 %Reshape the mean points in the shape model to visualise
-trabShapeModel.meanPoints = reshape(trabShapeModel.mean,...
-    [3, length(trabShapeModel.mean)/3])';
+tibTrabShapeModel.meanPoints = reshape(tibTrabShapeModel.mean,...
+    [3, length(tibTrabShapeModel.mean)/3])';
 
 %Calculate the cumulative variance explained by the model
-trabShapeModel.varExplainedSum = cumsum(trabShapeModel.varExplained);
+tibTrabShapeModel.varExplainedSum = cumsum(tibTrabShapeModel.varExplained);
 
 %Identify PCs to retain that meet explanatory threshold
-trabShapeModel.retainPCs = find(trabShapeModel.varExplainedSum > varExpThreshold,1);
+tibTrabShapeModel.retainPCs = find(tibTrabShapeModel.varExplainedSum > varExpThreshold,1);
 
 %Reconstruct each case using the retained PCs
-trabShapeModel.reconstructed = ...
-    trabShapeModel.score(:,1:trabShapeModel.retainPCs) * ...
-    trabShapeModel.loadings(:,1:trabShapeModel.retainPCs)';
+tibTrabShapeModel.reconstructed = ...
+    tibTrabShapeModel.score(:,1:tibTrabShapeModel.retainPCs) * ...
+    tibTrabShapeModel.loadings(:,1:tibTrabShapeModel.retainPCs)';
 
 %Calculate the distance error between reconstructed and actual points across cases
 if calcResults 
@@ -1014,40 +1014,39 @@ if calcResults
     for caseInd = 1:length(caseID)
 
         %Calculate point error distance
-        trabShapeModel.pointErrorDist(caseInd,:) = ...
+        tibTrabShapeModel.pointErrorDist(caseInd,:) = ...
             distancePoints3d([data.tibia.V(:,:,caseInd); data.trab_tibia.V(:,:,caseInd)], ...
-            reshape((trabShapeModel.reconstructed(caseInd,:) + trabShapeModel.mean),...
-            [3, length(trabShapeModel.mean)/3])');
+            reshape((tibTrabShapeModel.reconstructed(caseInd,:) + tibTrabShapeModel.mean),...
+            [3, length(tibTrabShapeModel.mean)/3])');
 
         %Calculate the mean error
-        trabShapeModel.pointErrorDistMean(caseInd,1) = ...
-            mean(trabShapeModel.pointErrorDist(caseInd,:));
+        tibTrabShapeModel.pointErrorDistMean(caseInd,1) = ...
+            mean(tibTrabShapeModel.pointErrorDist(caseInd,:));
 
         %Calculate the peak error
-        trabShapeModel.pointErrorDistMax(caseInd,1) = ...
-            max(trabShapeModel.pointErrorDist(caseInd,:));
+        tibTrabShapeModel.pointErrorDistMax(caseInd,1) = ...
+            max(tibTrabShapeModel.pointErrorDist(caseInd,:));
 
         %Convert distance error to colour scales for visualisation
         %Tibia component
-        trabShapeModel.pointErrorDistColF1(caseInd,:) = vertexToFaceMeasure(trabShapeModel.F1, ...
-            trabShapeModel.pointErrorDist(caseInd,1:optionStruct_tib.nb_pts)');
-        trabShapeModel.pointErrorDistColV1(caseInd,1:optionStruct_tib.nb_pts) = faceToVertexMeasure(trabShapeModel.F1, ...
+        tibTrabShapeModel.pointErrorDistColF1(caseInd,:) = vertexToFaceMeasure(tibTrabShapeModel.F1, ...
+            tibTrabShapeModel.pointErrorDist(caseInd,1:optionStruct_tib.nb_pts)');
+        tibTrabShapeModel.pointErrorDistColV1(caseInd,1:optionStruct_tib.nb_pts) = faceToVertexMeasure(tibTrabShapeModel.F1, ...
             data.tibia.V(:,:,caseInd), ...
-            trabShapeModel.pointErrorDistColF1(caseInd,:)');
+            tibTrabShapeModel.pointErrorDistColF1(caseInd,:)');
         %Trabecular component
-        trabShapeModel.pointErrorDistColF2(caseInd,:) = vertexToFaceMeasure(trabShapeModel.F2, ...
-            trabShapeModel.pointErrorDist(caseInd,optionStruct_tib.nb_pts+1:end)');
-        trabShapeModel.pointErrorDistColV2(caseInd,1:optionStruct_tib.nb_pts) = faceToVertexMeasure(trabShapeModel.F2, ...
+        tibTrabShapeModel.pointErrorDistColF2(caseInd,:) = vertexToFaceMeasure(tibTrabShapeModel.F2, ...
+            tibTrabShapeModel.pointErrorDist(caseInd,optionStruct_tib.nb_pts+1:end)');
+        tibTrabShapeModel.pointErrorDistColV2(caseInd,1:optionStruct_tib.nb_pts) = faceToVertexMeasure(tibTrabShapeModel.F2, ...
             data.trab_tibia.V(:,:,caseInd), ...
-            trabShapeModel.pointErrorDistColF2(caseInd,:)');
+            tibTrabShapeModel.pointErrorDistColF2(caseInd,:)');
         
         %Calculate Jaccard index
-        %%%% TODO: calculation for separate parts
-% % %         trabShapeModel.jaccardSimilarity(caseInd,1) = ...
-% % %             calcJaccardShapeModel(data.trab_tibia.V(:,:,caseInd), ...
-% % %             reshape((trabShapeModel.reconstructed(caseInd,:) + trabShapeModel.mean), ...
-% % %             [3, length(trabShapeModel.mean)/3])', ...
-% % %             trabShapeModel, 1);
+        tibTrabShapeModel.jaccardSimilarity(caseInd,1) = ...
+            calcJaccardShapeModel([data.tibia.V(:,:,caseInd); data.trab_tibia.V(:,:,caseInd)], ...
+            reshape((tibTrabShapeModel.reconstructed(caseInd,:) + tibTrabShapeModel.mean), ...
+            [3, length(tibTrabShapeModel.mean)/3])', ...
+            tibTrabShapeModel, 2, true, optionStruct_tib.nb_pts);
         
         %Create two visualisations for this model
         
@@ -1061,12 +1060,12 @@ if calcResults
             %Create subplot for current view
             subplot(1,4,viewNo);
             %Add original surface
-            hpOrig = gpatch(trabShapeModel.F1, data.tibia.V(:,:,caseInd), [200/255 200/255 200/255], 'none', 0.5);
+            hpOrig = gpatch(tibTrabShapeModel.F1, data.tibia.V(:,:,caseInd), [200/255 200/255 200/255], 'none', 0.5);
             %Add predicted surface
-            hpPred = gpatch(trabShapeModel.F1, ...
-                reshape(trabShapeModel.reconstructed(caseInd,1:optionStruct_tib.nb_pts*3) + trabShapeModel.mean(1:optionStruct_tib.nb_pts*3), ...
-                    [3, length(trabShapeModel.mean)/2/3])', ...
-                    trabShapeModel.pointErrorDistColV1(caseInd,:)', 'none', 1);
+            hpPred = gpatch(tibTrabShapeModel.F1, ...
+                reshape(tibTrabShapeModel.reconstructed(caseInd,1:optionStruct_tib.nb_pts*3) + tibTrabShapeModel.mean(1:optionStruct_tib.nb_pts*3), ...
+                    [3, length(tibTrabShapeModel.mean)/2/3])', ...
+                    tibTrabShapeModel.pointErrorDistColV1(caseInd,:)', 'none', 1);
             %Interpolate colouring for smoothness
             hpPred.FaceColor = 'Interp'; colormap viridis
             %Set axis view
@@ -1098,13 +1097,13 @@ if calcResults
             subplot(1,4,viewNo);
             %Add original surfaces
             %This includes a very see through tibia
-            hpOrig1 = gpatch(trabShapeModel.F1, data.tibia.V(:,:,caseInd), [200/255 200/255 200/255], 'none', 0.1);
-            hpOrig2 = gpatch(trabShapeModel.F2, data.trab_tibia.V(:,:,caseInd), [200/255 200/255 200/255], 'none', 0.5);
+            hpOrig1 = gpatch(tibTrabShapeModel.F1, data.tibia.V(:,:,caseInd), [200/255 200/255 200/255], 'none', 0.1);
+            hpOrig2 = gpatch(tibTrabShapeModel.F2, data.trab_tibia.V(:,:,caseInd), [200/255 200/255 200/255], 'none', 0.5);
             %Add predicted surface
-            hpPred = gpatch(trabShapeModel.F2, ...
-                reshape(trabShapeModel.reconstructed(caseInd,optionStruct_tib.nb_pts*3+1:end) + trabShapeModel.mean(optionStruct_tib.nb_pts*3+1:end), ...
-                    [3, length(trabShapeModel.mean)/2/3])', ...
-                    trabShapeModel.pointErrorDistColV2(caseInd,:)', 'none', 1);
+            hpPred = gpatch(tibTrabShapeModel.F2, ...
+                reshape(tibTrabShapeModel.reconstructed(caseInd,optionStruct_tib.nb_pts*3+1:end) + tibTrabShapeModel.mean(optionStruct_tib.nb_pts*3+1:end), ...
+                    [3, length(tibTrabShapeModel.mean)/2/3])', ...
+                    tibTrabShapeModel.pointErrorDistColV2(caseInd,:)', 'none', 1);
             %Interpolate colouring for smoothness
             hpPred.FaceColor = 'Interp'; colormap viridis
             %Set axis view
@@ -1129,31 +1128,111 @@ if calcResults
     end
     
     %Place calculations into table
-    %%% TODO
-% % %     trabShapeModel.errorSummaryTable = table(trabShapeModel.pointErrorDistMean, ...
-% % %         trabShapeModel.pointErrorDistMax, ...
-% % %         trabShapeModel.jaccardSimilarity, ...
-% % %         'VariableNames', {'pointErrorDistMean', 'pointErrorDistMax', 'jaccardSimilarity'}, ...
-% % %         'RowNames', caseID);
+    tibTrabShapeModel.errorSummaryTable = table(tibTrabShapeModel.pointErrorDistMean, ...
+        tibTrabShapeModel.pointErrorDistMax, ...
+        tibTrabShapeModel.jaccardSimilarity, ...
+        'VariableNames', {'pointErrorDistMean', 'pointErrorDistMax', 'jaccardSimilarity'}, ...
+        'RowNames', caseID);
 
     %Export table to file
-    %%% TODO
-% % %     writetable(trabShapeModel.errorSummaryTable, 'results\errorSummaryTable.csv', ...
-% % %         'WriteRowNames', true);
+    writetable(tibTrabShapeModel.errorSummaryTable, 'results\errorSummaryTable.csv', ...
+        'WriteRowNames', true);
 
 else 
     
-% % %     %Read in saved table
-% % %     trabShapeModel.errorSummaryTable = readtable('results\errorSummaryTable.csv');
-% % %     
-% % %     %Unpack to structure
-% % %     trabShapeModel.pointErrorDistMean = trabShapeModel.errorSummaryTable.pointErrorDistMean;
-% % %     trabShapeModel.pointErrorDistMax = trabShapeModel.errorSummaryTable.pointErrorDistMax;
-% % %     trabShapeModel.jaccardSimilarity = trabShapeModel.errorSummaryTable.jaccardSimilarity;
+    %Read in saved table
+    tibTrabShapeModel.errorSummaryTable = readtable('results\errorSummaryTable.csv');
+    
+    %Unpack to structure
+    tibTrabShapeModel.pointErrorDistMean = tibTrabShapeModel.errorSummaryTable.pointErrorDistMean;
+    tibTrabShapeModel.pointErrorDistMax = tibTrabShapeModel.errorSummaryTable.pointErrorDistMax;
+    tibTrabShapeModel.jaccardSimilarity = tibTrabShapeModel.errorSummaryTable.jaccardSimilarity;
        
 end
 
-%%%%% TODO: display data and create figure in same way as original
+%Calculate and display mean and 95% CI's for the mean and peak error, and Jaccard 
+%Mean error
+meanError_m = mean(tibTrabShapeModel.pointErrorDistMean);
+meanError_sd = std(tibTrabShapeModel.pointErrorDistMean);
+meanError_lower95 = meanError_m - (1.96 * (meanError_sd / sqrt(length(caseID))));
+meanError_upper95 = meanError_m + (1.96 * (meanError_sd / sqrt(length(caseID))));
+%Peak error
+maxError_m = mean(tibTrabShapeModel.pointErrorDistMax);
+maxError_sd = std(tibTrabShapeModel.pointErrorDistMax);
+maxError_lower95 = maxError_m - (1.96 * (maxError_sd / sqrt(length(caseID))));
+maxError_upper95 = maxError_m + (1.96 * (maxError_sd / sqrt(length(caseID))));
+%Jaccard similarity
+jaccard_m = mean(tibTrabShapeModel.jaccardSimilarity);
+jaccard_sd = std(tibTrabShapeModel.jaccardSimilarity);
+jaccard_lower95 = jaccard_m - (1.96 * (jaccard_sd / sqrt(length(caseID))));
+jaccard_upper95 = jaccard_m + (1.96 * (jaccard_sd / sqrt(length(caseID))));
+%Display
+disp(['Tibia-plus-trabecular shape model reconstruction mean point error (mean +/- 95% CIs) = ',num2str(round(meanError_m,2)), ...
+    '[',num2str(round(meanError_lower95,2)),',',num2str(round(meanError_upper95,2)),']']);
+disp(['Tibia-plus-trabecular shape model reconstruction max point error (mean +/- 95% CIs) = ',num2str(round(maxError_m,2)), ...
+    '[',num2str(round(maxError_lower95,2)),',',num2str(round(maxError_upper95,2)),']']);
+disp(['Tibia-plus-trabecular shape model Jaccard index (mean +/- 95% CIs) = ',num2str(round(jaccard_m,3)), ...
+    '[',num2str(round(jaccard_lower95,3)),',',num2str(round(jaccard_upper95,3)),']']);
+
+%Create summary figure of error data
+%Create figure
+hfErr = cFigure; hold on
+hfErr.Units = 'centimeters';
+hfErr.Position = [5, 5, 24, 6];
+%Plot mean error data
+%Create subplot
+subplot(1,3,1); hold on
+%Plot mean as dashed line & CIs as dotted lines
+plot([1,length(caseID)], [meanError_m, meanError_m], ...
+    'Color', 'k', 'LineWidth', 2, 'LineStyle', '--');
+plot([1,length(caseID)], [meanError_lower95, meanError_lower95], ...
+    'Color', 'k', 'LineWidth', 1, 'LineStyle', ':');
+plot([1,length(caseID)], [meanError_upper95, meanError_upper95], ...
+    'Color', 'k', 'LineWidth', 1, 'LineStyle', ':');
+%Plot participant data
+scatter(linspace(1,length(caseID), length(caseID)), tibTrabShapeModel.pointErrorDistMean, ...
+    15, 'k', 'filled');
+%Set labels
+xlabel('Participants'); ylabel('Error (mm)'); title('Mean Position Error');
+%Remove ticks
+ax = gca(); ax.XTick = [];
+%Plot max error data
+%Create subplot
+subplot(1,3,2); hold on
+%Plot mean as dashed line & CIs as dotted lines
+plot([1,length(caseID)], [maxError_m, maxError_m], ...
+    'Color', 'k', 'LineWidth', 2, 'LineStyle', '--');
+plot([1,length(caseID)], [maxError_lower95, maxError_lower95], ...
+    'Color', 'k', 'LineWidth', 1, 'LineStyle', ':');
+plot([1,length(caseID)], [maxError_upper95, maxError_upper95], ...
+    'Color', 'k', 'LineWidth', 1, 'LineStyle', ':');
+%Plot participant data
+scatter(linspace(1,length(caseID), length(caseID)), tibTrabShapeModel.pointErrorDistMax, ...
+    15, 'k', 'filled');
+%Set labels
+xlabel('Participants'); ylabel('Error (mm)'); title('Peak Position Error');
+%Remove ticks
+ax = gca(); ax.XTick = [];
+%Plot Jaccard similarity data
+%Create subplot
+subplot(1,3,3); hold on
+%Plot mean as dashed line & CIs as dotted lines
+plot([1,length(caseID)], [jaccard_m, jaccard_m], ...
+    'Color', 'k', 'LineWidth', 2, 'LineStyle', '--');
+plot([1,length(caseID)], [jaccard_lower95, jaccard_lower95], ...
+    'Color', 'k', 'LineWidth', 1, 'LineStyle', ':');
+plot([1,length(caseID)], [jaccard_upper95, jaccard_upper95], ...
+    'Color', 'k', 'LineWidth', 1, 'LineStyle', ':');
+%Plot participant data
+scatter(linspace(1,length(caseID), length(caseID)), tibTrabShapeModel.jaccardSimilarity, ...
+    15, 'k', 'filled');
+%Set labels
+xlabel('Participants'); ylabel('Jaccard Index (0-1)'); title('Jaccard Similarity');
+%Remove ticks
+ax = gca(); ax.XTick = [];
+%Export summary figure
+export_fig('figures\errorSummary\errorSummaryFigure.png','-m2');
+close(hfErr);
 
 %This function can be used to examine the shape effect of a principal
 %component. It creates an interactive animation of increasing/decreasing
@@ -1162,10 +1241,10 @@ end
 %components). The below code is defaulting to visualising PC1 over a -3 to
 %+3 standard deviation range, while also exporting the animation as a GIF.
 sdRange = 3;
-for nPC = 1:trabShapeModel.retainPCs
+for nPC = 1:tibTrabShapeModel.retainPCs
     %Create animations
     animatePrincipalComponentTwoParts(optionStruct_tib.nb_pts, optionStruct_tib.nb_pts, ...
-        trabShapeModel, nPC, sdRange, true);
+        tibTrabShapeModel, nPC, sdRange, true);
     %Shift to results folder
     movefile(['PC',num2str(nPC),'_plus-',num2str(sdRange),'SD_animation.gif'], ...
         ['results\PC',num2str(nPC),'_plus-',num2str(sdRange),'SD_animation.gif'])
@@ -1173,9 +1252,10 @@ for nPC = 1:trabShapeModel.retainPCs
         ['results\PC',num2str(nPC),'_minus-',num2str(sdRange),'SD_animation.gif'])
 end
 
-%%%%% TODO: save outputs from this shape model
+%Save the shape model data
+save('tibTrabShapeModel.mat', 'tibTrabShapeModel');
 
-%% Trabecular (tibia) shape model ***OLD VERSION OF TRABECULAR***
+%% Trabecular (tibia) shape model ***OLD VERSION OF TRABECULAR ONLY***
 
 %Navigate into shape model directory
 cd('trabecular-tibia');
