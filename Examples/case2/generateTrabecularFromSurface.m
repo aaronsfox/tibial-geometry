@@ -1,7 +1,8 @@
 %% This script provides a demonstration of how to generate a volumetric mesh
 %  of the tibia trabecular by registering a different surface to the shape
-%  model and then combining this with our regresion model for the
-%  relationship between tibia surface shape and trabecular volume.
+%  model of the tibia and trabecular. The new tibial surface is matched
+%  against one created by the shape model, and then the trabecular that
+%  stems from these shape model component scores is created.
 %
 %  See the README.MD in this folder for more descriptive details on this
 %  process and the source data.
@@ -35,8 +36,7 @@ homeDir = pwd;
 addpath(genpath('supplementary'));
 
 %Load the tibia and trabecular shape models required
-load('..\..\ShapeModels\tibia\tibiaShapeModel.mat');
-load('..\..\ShapeModels\trabecular-tibia\trabShapeModel.mat');
+load('..\..\ShapeModels\tibia-plus-trabecular\tibTrabShapeModel.mat');
 
 %Set array to rotate views of surfaces later in reconstruction process
 surfaceRot = [-90, 0, 90, 180];
@@ -47,11 +47,14 @@ viewLabel = [{'Anterior'}, {'Lateral'}, {'Posterior'}, {'Medial'}];
 %Navigate to segmentation directory to get case ID names
 cd('..\..\Segmentation\');
 
-%Grab the case names
-f = dir();
-for ff = 3:length(f)
-    caseID{ff-2} = f(ff).name;
-end
+%Grab the case names based on folders
+f = dir(pwd);
+%Get a logical vector that tells which is a directory.
+dirFlags = [f.isdir];
+%Extract only those that are directories.
+subFolders = f(dirFlags);
+%Get only the folder names into a cell array.
+caseID = {subFolders(3:end).name}; %Start at 3 to skip . and ..
 
 %Return to home directory
 cd(homeDir);
@@ -85,80 +88,7 @@ optCPD_rig.tol = 1e-4;          % tolerance
 optCPD_rig.corresp = 0;         % estimate correspondence
 optCPD_rig.scale = 0;           % turn off scaling
 
-%% Create a regression model between tibia and trabecular
-
-%Here we create a series of regression models that use the retained tibia
-%shape model scores to predict each of retained trabecular shape model
-%scores. The theoretical basis for this is that the shape of the tibia can
-%be effective in predicting the shape of the trabecular.
-%
-%The first step here is to ascertain the potential error by iterating
-%through a leave-one-out cross validation approach. The series of linear
-%models is fit while leaving one case out, and the values of that left out
-%case predicted. We then reconstruct using the leave-out predictions and
-%calculate the error between the original and predicted trabecular
-%surfaces.
-
-%Create an array that will sort through the leave one out approach
-leaveOut = linspace(1, size(tibiaShapeModel.nodes,1), size(tibiaShapeModel.nodes,1));
-
-%Loop through and predict trabecular PCs for left-out cases
-for predictCase = 1:length(leaveOut)
-    
-    %Create a boolean mask to leave out the current case
-    leaveOutBool = leaveOut ~= predictCase;
-    
-    %Get the retained PC scores from the tibia to use as predictors
-    %Leave out appropriate case
-    tibiaPCs = tibiaShapeModel.score(leaveOutBool,1:tibiaShapeModel.retainPCs);
-
-    %Generate regression models for each of the retained trabecular PCs
-    for predictPC = 1:trabShapeModel.retainPCs
-
-        %Get the current scores as training for the regression model
-        %Leave out appropriate case
-        trabPCs = trabShapeModel.score(leaveOutBool,predictPC);
-        
-        %Fit the linear model on the data
-        linearModel{predictPC} = fitlm(tibiaPCs, trabPCs);
-
-        %Output predicted values for left out case
-        predictTrabPCs(predictCase, predictPC) = predict(linearModel{predictPC}, ...
-            tibiaShapeModel.score(predictCase,1:tibiaShapeModel.retainPCs));
-
-    end
-    
-end
-
-% % % %Create a scatter subplot of the predicted trabecular PCs
-% % % %This gives a demonstration of how well (or not) the tibia PCs predict the
-% % % %trabecular PC score
-% % % f = figure; f.Position = [100 100 1080 800];
-% % % for predictPC = 1:trabShapeModel.retainPCs
-% % %     
-% % %     %Create subplot
-% % %     subplot(2,2,predictPC); hold on
-% % %     
-% % %     %Plot data
-% % %     scatter(trabShapeModel.score(:,predictPC), predictTrabPCs(:,predictPC), ...
-% % %         'k', 'filled');
-% % %     
-% % %     %Plot line of equality
-% % %     ax = gca;
-% % %     plot([ax.XLim(1), ax.XLim(2)], [ax.XLim(1), ax.XLim(2)], 'r--');
-% % %     
-% % %     %Add title
-% % %     title(['Trabecular Shape Model PC',num2str(predictPC)]);
-% % %     
-% % %     %Add labels
-% % %     xlabel('Actual Shape Model Score');
-% % %     ylabel('Predicted Shape Model Score');
-% % %     
-% % % end
-
-%Reconstruct each case using the predicted PCs
-predictReconstructed = predictTrabPCs(:,1:trabShapeModel.retainPCs) * ...
-    trabShapeModel.loadings(:,1:trabShapeModel.retainPCs)';
+%%
 
 %Check whether to run reconstructions or load results
 if runReconstructions
@@ -169,44 +99,93 @@ if runReconstructions
     %Loop through predicted reconstructions
     %Align them in the appropriate way
     %Calulcate the mean and peak error, and Jaccard similarity
-    for predictCase = 1:length(leaveOut)
+    for predictCase = 1:length(caseID)
 
         %Get the original surface in XYZ format
-        actualV = reshape(trabShapeModel.nodes(predictCase,:), ...
-            [3, length(trabShapeModel.mean)/3])';
+        actualV = reshape(tibTrabShapeModel.nodes(predictCase,:), ...
+            [3, length(tibTrabShapeModel.mean)/3])';
+        
+        %Split this into the tibia and trabecular points
+        %(i.e. first half of points = tibia; second half of points = trab)
+        actualV_tib = actualV(1:optionStruct_tib.nb_pts,:);
+        actualV_trab = actualV(optionStruct_tib.nb_pts+1:end,:);
+        
+        %Set-up the initial guess and bounds for the optimisation
+        
+        %Grab the original surface points and remove the mean
+        optimData = tibTrabShapeModel.nodes(predictCase,:) - tibTrabShapeModel.mean;
+        
+        %Project the new data against the loadings to find the estimated scores
+        %Note that these should be pretty accuracte given it's the real data
+        %Set the upper and lower bounds on the score variables. Here we set them as
+        %-5 / +5 standard deviations about the PC score mean (i.e. zero)        
+        sdRange = 5;
+        %Loop through retained PCs
+        for nPC = 1:length(tibTrabShapeModel.varExplained)
+            %Calculate scores and set to an initial guess variable
+% % %             x0(nPC,1) = dot(tibTrabShapeModel.loadings(:,nPC), optimData);
+            x0(nPC,1) = 0;
+            %Set the lower bound
+            lb(nPC,1) = std(tibTrabShapeModel.score(:,nPC)) * -sdRange;
+            %Set the upper bound
+            ub(nPC,1) = std(tibTrabShapeModel.score(:,nPC)) * sdRange;
+        end
+        
+        %Create the function handle for fmincon
+        optFunc = @(pcScores)calcReconstructionError(pcScores, tibTrabShapeModel, actualV_tib);
 
-        %Get the predicted reconstruction in XYZ format
-        predictedV = reshape(predictReconstructed(predictCase,:) + trabShapeModel.mean, ...
-            [3, length(trabShapeModel.mean)/3])';
+        %Set fmincon options
+        fminconOpts = optimoptions('fmincon');
+        fminconOpts.MaxIterations = 5000; %up potential iterations
+        fminconOpts.MaxFunctionEvaluations = 20000; %up potential function evals
+        fminconOpts.StepTolerance = 1e-4; %scale optimisation tolerance to problem
+        fminconOpts.Display = 'iter'; %set to display function iterations
 
-        %Get the tibial surface for alignment
-        tibiaV = reshape(tibiaShapeModel.nodes(predictCase,:), ...
-            [3, length(tibiaShapeModel.mean)/3])';
+        %Run fmincon to optimise PC scores for trabecular reconstruction
+        [x,fval] = fmincon(optFunc, x0, [], [], [], [], lb, ub, [], fminconOpts);
+        
+        %Reconstruct using the optimised PC scores
+        optReconstructed = x(1:tibTrabShapeModel.retainPCs)' * ...
+            tibTrabShapeModel.loadings(:,1:tibTrabShapeModel.retainPCs)' + ...
+            tibTrabShapeModel.mean;
 
-        %Check the need to scale trabecular to fit inside tibia
+        %Reshape reconstructed points
+        optReconstructedV = reshape(optReconstructed', [3, length(optReconstructed)/3])';
+        
+        %Extract the tibia and trabecular sections from reconstruction
+        reconstructedV_tib = optReconstructedV(1:optionStruct_tib.nb_pts,:);
+        reconstructedV_trab = optReconstructedV(optionStruct_tib.nb_pts+1:end,:);
 
-        %Determine trabecular points inside vs. outside tibia
-        trabPtsIn = intriangulation(tibiaV, tibiaShapeModel.F, predictedV, 0);
+% % %         %Visualise original vs. reconstructed tibia
+% % %         cFigure; hold on;
+% % %         gpatch(tibTrabShapeModel.F1, actualV_tib, 'gw', 'none', 0.3);
+% % %         gpatch(tibTrabShapeModel.F1, reconstructedV_tib, 'rw', 'k', 1);
+% % % % % %         plotV(reconstructedV_trab, 'b.');
+% % %         axisGeom; camlight headlight
+        
+        %Examine the number of trabecular points inside the tibia with the
+        %optimised reconstructed surfaces
+        trabPtsIn = intriangulation(actualV_tib, tibTrabShapeModel.F1, reconstructedV_trab, 0);
 
         %Extract the initial number of points outside        
         trabPointsOutsideInitial(predictCase,1) = sum(~trabPtsIn);
-
+        
         %Rescale trabecular if not all points are inside tibia
         if sum(~trabPtsIn) > 0
-            predictedV = alignTrabecularModel(tibiaV, tibiaShapeModel, predictedV, trabShapeModel, trabPtsIn);
+            reconstructedV_trab = alignTrabecularModel(actualV_tib, reconstructedV_trab, tibTrabShapeModel, trabPtsIn);
         end
-
+        
         %Determine trabecular points inside vs. outside tibia after alignment
-        trabPtsInNew = intriangulation(tibiaV, tibiaShapeModel.F, predictedV, 0);
+        trabPtsInNew = intriangulation(actualV_tib, tibTrabShapeModel.F1, reconstructedV_trab, 0);
 
         %Extract the initial number of points outside        
         trabPointsOutsideAfter(predictCase,1) = sum(~trabPtsInNew);
 
         %Calculate the Jaccard index between actual and predicted trabecular
-        jaccardSimilarity(predictCase,1) = calcJaccardTrabecular(actualV, predictedV, trabShapeModel);
+        jaccardSimilarity(predictCase,1) = calcJaccardTrabecular(actualV_trab, reconstructedV_trab, tibTrabShapeModel);
 
         %Calculate point error distance
-        pointErrorDist(predictCase,:) = distancePoints3d(actualV, predictedV);
+        pointErrorDist(predictCase,:) = distancePoints3d(actualV_trab, reconstructedV_trab);
 
         %Calculate the mean error
         pointErrorDistMean(predictCase,1) = mean(pointErrorDist(predictCase,:));
@@ -215,9 +194,9 @@ if runReconstructions
         pointErrorDistMax(predictCase,1) = max(pointErrorDist(predictCase,:));
 
         %Convert distance error to colour scales for visualisation
-        pointErrorDistColF(predictCase,:) = vertexToFaceMeasure(trabShapeModel.F, pointErrorDist(predictCase,:)');
-        pointErrorDistColV(predictCase,:) = faceToVertexMeasure(trabShapeModel.F, actualV, pointErrorDistColF(predictCase,:)');
-
+        pointErrorDistColF(predictCase,:) = vertexToFaceMeasure(tibTrabShapeModel.F2, pointErrorDist(predictCase,:)');
+        pointErrorDistColV(predictCase,:) = faceToVertexMeasure(tibTrabShapeModel.F2, actualV_trab, pointErrorDistColF(predictCase,:)');
+        
         %Create visualisation of error
         %Use subplots to create different perspectives
         cFigure; hold on;
@@ -226,9 +205,9 @@ if runReconstructions
             %Create subplot for current view
             subplot(1,4,viewNo);
             %Add greyed out original surface
-            hpOrig = gpatch(trabShapeModel.F, actualV, [200/255 200/255 200/255], 'none', 0.5);
+            hpOrig = gpatch(tibTrabShapeModel.F2, actualV_trab, [200/255 200/255 200/255], 'none', 0.5);
             %Add colormapped reconstruction
-            hpPred = gpatch(trabShapeModel.F, predictedV, pointErrorDistColV(predictCase,:)', 'none', 1);
+            hpPred = gpatch(tibTrabShapeModel.F2, reconstructedV_trab, pointErrorDistColV(predictCase,:)', 'none', 1);
             %Interpolate colouring for smoothness
             hpPred.FaceColor = 'Interp'; colormap viridis
             %Set axis view
@@ -253,19 +232,19 @@ if runReconstructions
         %%%% IMPORTANT NOTE: THESE STL FILES MUST BE CONSIDERED 'NEW' SURFACES
         %%%% AS THE POINTS GET REORDERED AND NO LONGER ALIGN WITH THE ORIGINALS
         stlStruct.solidNames = {['predicted-trabecular-',caseID{predictCase}]}; %names of parts
-        stlStruct.solidVertices = {predictedV}; %Vertices
-        stlStruct.solidFaces = {trabShapeModel.F}; %Faces
+        stlStruct.solidVertices = {reconstructedV_trab}; %Vertices
+        stlStruct.solidFaces = {tibTrabShapeModel.F2}; %Faces
         stlStruct.solidNormals={[]};
 
         %Export STLs
         export_STL_txt(['predictedSurfaces\',caseID{predictCase},'-predicted-trabecular.stl'], stlStruct);
 
         %Store data in array
-        predictedSurfaces.V(:,:,predictCase) = predictedV;
-        predictedSurfaces.F(:,:,predictCase) = trabShapeModel.F;
+        predictedSurfaces.V(:,:,predictCase) = reconstructedV_trab;
+        predictedSurfaces.F(:,:,predictCase) = tibTrabShapeModel.F2;
 
         %Update waitbar
-        waitbar(predictCase/length(leaveOut), wbar_trab);
+        waitbar(predictCase/length(caseID), wbar_trab);
 
     end
 
@@ -309,13 +288,13 @@ end
 %Mean & SD for mean error
 meanError_m = mean(trabecularErrorSummary.pointErrorDistMean);
 meanError_sd = std(trabecularErrorSummary.pointErrorDistMean);
-meanError_lower95 = meanError_m - (1.96 * (meanError_sd / sqrt(length(leaveOut))));
-meanError_upper95 = meanError_m + (1.96 * (meanError_sd / sqrt(length(leaveOut))));
+meanError_lower95 = meanError_m - (1.96 * (meanError_sd / sqrt(length(caseID))));
+meanError_upper95 = meanError_m + (1.96 * (meanError_sd / sqrt(length(caseID))));
 %Mean & SD for maxerror
 maxError_m = mean(trabecularErrorSummary.pointErrorDistMax);
 maxError_sd = std(trabecularErrorSummary.pointErrorDistMax);
-maxError_lower95 = maxError_m - (1.96 * (maxError_sd / sqrt(length(leaveOut))));
-maxError_upper95 = maxError_m + (1.96 * (maxError_sd / sqrt(length(leaveOut))));
+maxError_lower95 = maxError_m - (1.96 * (maxError_sd / sqrt(length(caseID))));
+maxError_upper95 = maxError_m + (1.96 * (maxError_sd / sqrt(length(caseID))));
 %Jaccard similarity
 jaccard_m = mean(trabecularErrorSummary.jaccardSimilarity);
 jaccard_sd = std(trabecularErrorSummary.jaccardSimilarity);
@@ -389,44 +368,6 @@ ax = gca(); ax.XTick = [];
 export_fig('figures\errorSummary\errorSummaryFigure.png','-m2');
 close(hfErr);
 
-%Create the final linear models using all cases
-
-%Get the retained PC scores from the tibia to use as predictors
-%Leave out appropriate case
-tibiaPCs = tibiaShapeModel.score(:,1:tibiaShapeModel.retainPCs);
-
-%Generate regression models for each of the retained trabecular PCs
-for predictPC = 1:trabShapeModel.retainPCs
-
-    %Get the current scores as training for the regression model
-    %Leave out appropriate case
-    trabPCs = trabShapeModel.score(:,predictPC);
-
-    %Fit the linear model on the data
-    finalLinearModel{predictPC} = fitlm(tibiaPCs, trabPCs);
-    
-    %Get linear model as 
-    
-    %Export model coefficients to table
-    coeffTable = finalLinearModel{predictPC}.Coefficients;
-    coeffTable.Properties.RowNames = {'Intercept';
-        'Tibia Shape Model PC1';
-        'Tibia Shape Model PC2';
-        'Tibia Shape Model PC3';
-        'Tibia Shape Model PC4';
-        'Tibia Shape Model PC5'};
-    coeffTable.Properties.VariableNames = {'Estimate', 'Standard Error', 't-statistic', 'p-value'};
-    writetable(coeffTable, ['results\linearModel_trabecularPC',num2str(predictPC),'.csv'], ...
-        'WriteRowNames', true);
-    
-    %Print summary diagnostics to file
-    fid = fopen(['results\linearModelResults_trabecularPC',num2str(predictPC),'.txt'], 'wt');
-    T = evalc('disp(finalLinearModel{predictPC})');
-    fprintf(fid, T);
-    fclose(fid);
-
-end
-
 %% Apply trabecular prediction to a new surface
 %  Note that here we randomly select one surface from the dataset, but this
 %  can be changed to another from the dataset. Alternatively, any .stl
@@ -475,7 +416,7 @@ end
 
 %Generate the predicted trabecular points from shape models
 [newPredictedTrabV, newTibiaF, newTibiaV] = ...
-    createTrabecularFromSample(tibiaF, tibiaV, tibiaShapeModel, trabShapeModel, finalLinearModel);
+    createTrabecularFromSample(tibiaF, tibiaV, tibTrabShapeModel, optionStruct_tib.nb_pts);
 
 %Review newly fixed trabecular within original tibia
 cFigure; hold on;
@@ -486,7 +427,7 @@ for viewNo = 1:4
     %Add greyed out tibia surface
     hpTib = gpatch(newTibiaF, newTibiaV, 'kw', 'none', 0.3);
     %Add trabecular surface
-    hpTrab = gpatch(trabShapeModel.F, newPredictedTrabV, 'rw', 'k', 1);
+    hpTrab = gpatch(tibTrabShapeModel.F2, newPredictedTrabV, 'rw', 'k', 1);
     %Set axis view
     axis equal; axis tight; view(0,90);
     rotate(hpTib,[0 1 0], surfaceRot(viewNo));

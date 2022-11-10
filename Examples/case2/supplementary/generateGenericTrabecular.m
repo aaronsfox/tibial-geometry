@@ -18,7 +18,7 @@ function [F, V] = generateGenericTrabecular(tibiaV, shapeModel, corticalThicknes
     %% Create internal surface
     
     %Remesh surface
-    [tibiaF, tibiaV] = ggremesh(shapeModel.F, tibiaV, opts);
+    [tibiaF, tibiaV] = ggremesh(shapeModel.F1, tibiaV, opts);
     [tibiaF, tibiaV] = mergeVertices(tibiaF, tibiaV);
     
     %Find interior point

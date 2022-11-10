@@ -26,24 +26,28 @@ function [sumError] = calcReconstructionError(pcScores, shapeModel, origPoints)
     %Reshape points to visualise
     reconstructedV = transpose(reshape(reconstructedPoints,...
         [3, length(reconstructedPoints)/3]));
+    
+    %Extract just the tibia as that's what we're interested in for this
+    %error reconstruction
+    reconstructedV_tib = reconstructedV(1:length(reconstructedV)/2,:);
         
 % % %     %Visualise original vs. reconstructed
 % % %     cFigure; hold on;
-% % %     gpatch(shapeModel.F, origPoints, 'gw', 'k', 0.3);
-% % %     gpatch(shapeModel.F, reconstructedV, 'rw', 'k', 1);
+% % %     gpatch(shapeModel.F1, origPoints, 'gw', 'k', 0.3);
+% % %     gpatch(shapeModel.F1, reconstructedV_tib, 'rw', 'k', 1);
 % % %     axisGeom;
 
     %Calculate error between reconstructed and original surface
-    reconError = distancePoints3d(origPoints, reconstructedV);
+    reconError = distancePoints3d(origPoints, reconstructedV_tib);
     
     %Convert error to colour map for visualisation
-    errorColF = vertexToFaceMeasure(shapeModel.F, reconError);
-    errorColV = faceToVertexMeasure(shapeModel.F, origPoints, errorColF);
+    errorColF = vertexToFaceMeasure(shapeModel.F1, reconError);
+    errorColV = faceToVertexMeasure(shapeModel.F1, origPoints, errorColF);
     
 % % %     %Visualise error
 % % %     cFigure; hold on;
-% % %     hpOrig = gpatch(shapeModel.F, origPoints, [200/255 200/255 200/255], 'none', 0.5);
-% % %     hp = gpatch(shapeModel.F, reconstructedV, errorColV, 'none', 1);
+% % %     hpOrig = gpatch(shapeModel.F1, origPoints, [200/255 200/255 200/255], 'none', 0.5);
+% % %     hp = gpatch(shapeModel.F1, reconstructedV_tib, errorColV, 'none', 1);
 % % %     hp.FaceColor = 'Interp'; colormap viridis
 % % %     axis equal; axis tight; axis off
 % % %     view(0,90);

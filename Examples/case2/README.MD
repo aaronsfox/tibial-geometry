@@ -4,7 +4,7 @@
 
 ## Background
 
-This example case uses both the tibia and trabecular shape model created from this dataset to form a predictive model of the trabecular surface from the tibia surface. The theoretical basis for this is that the shape of the tibia can be effective in predicting the shape of the internal trabecular surface. The practical basis for this is that there are certain scenarios where generating actual models of the trabecular surface are difficult or improbable. For example:
+This example case uses the combined tibia and trabecular shape model created from this dataset to make predictions of the trabecular surface from the outer tibial surface data. The theoretical basis for this is that the shape of the outer cortical tibia can be effective in predicting the shape of the internal trabecular surface. The practical basis for this is that there are certain scenarios where generating actual models of the trabecular surface are difficult or improbable. For example:
 
 - Segmenting the trabecular surface from CT scans is possible, but is more time-consuming and requires more manual correction than the overall external surface (i.e. the cortical bone)
 - MRI scans that aren't optimised for detecting the trabecular surface do not provide great information for segmenting the trabecular surface
@@ -14,7 +14,7 @@ There are various scenarios where an adequate model of the cortical and trabecul
 
 ## Code
 
-- **generateTrabecularFromSurface.m:** This is the main script associated with this example case, and runs through the processes of: (i) developing a set of linear regression models for predicting trabecular shape model scores from the tibial shape model scores; (ii) comparing predicted reconstructions with the original surfaces as a means of evaluating these models; and (iii) predicting the trabecular shape of a new surface from Nolte et al. (2016).
+- **generateTrabecularFromSurface.m:** This is the main script associated with this example case, and runs through the processes of: (i) comparing predicted reconstructions with the original surfaces as a means of evaluating the accuracy of this process; and (iii) predicting the trabecular shape of a new surface from Nolte et al. (2016).
 
 The **supplementary** folder includes a series of external and custom functions used within the main script for various steps. Where using these external code sources for your own work, please cite the original authors of these works.
 

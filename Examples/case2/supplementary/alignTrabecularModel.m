@@ -1,12 +1,11 @@
-function [trabV] = alignTrabecularModel(tibiaV, tibiaShapeModel, predictedV, trabShapeModel, trabPtsIn)
+function [trabV] = alignTrabecularModel(tibiaV, predictedV, shapeModel, trabPtsIn)
 
     %% This script aligns the generic trabecular model to the original tibia
     %
     %  Inputs:
     %       tibiaV - vertices for the tibia surface being used with prediction
-    %       tibiaShapeModel - the structure with shape model data for the trabecular
     %       predictedV - vertices for the trabecular surface predicted
-    %       trabshapeModel - the structure with shape model data for the trabecular 
+    %       shapeModel - the structure with shape model data for the tibia-plus-trabecular
     %       trabPtsIn - logical indicative of points inside and outside of tibia
     %
     % Authors:
@@ -60,7 +59,7 @@ function [trabV] = alignTrabecularModel(tibiaV, tibiaShapeModel, predictedV, tra
 
     %Generate a generic trabecular to support an initial guess of rescaling 
     [genericTrabF, genericTrabV] = generateGenericTrabecular(...
-        tibiaV, tibiaShapeModel, 1, length(predictedV));
+        tibiaV, shapeModel, 1, length(predictedV));
 
     %Non-rigidly align the predicted trabecular to the generic trabecular
     %to identify matching points where corrections are needed
@@ -85,13 +84,13 @@ function [trabV] = alignTrabecularModel(tibiaV, tibiaShapeModel, predictedV, tra
 
     %One last final error check for if trabecular points are inside, as
     %later meshing functions will fail if this isn't the case
-    trabPtsIn = intriangulation(tibiaV, tibiaShapeModel.F, alignedPredictedV, 0);
+    trabPtsIn = intriangulation(tibiaV, shapeModel.F1, alignedPredictedV, 0);
     if sum(~trabPtsIn) > 0
         error('Something has gone wrong with containing trabecular points within tibia...whoops...')
     end
     
     %Check that any tibia points aren't outside the trabecular surface
-    tibiaPtsIn = intriangulation(alignedPredictedV, trabShapeModel.F, tibiaV, 0);
+    tibiaPtsIn = intriangulation(alignedPredictedV, shapeModel.F2, tibiaV, 0);
     
     %Correct if necessary
     if sum(tibiaPtsIn) > 0

@@ -12,15 +12,15 @@ function [jaccardSimilarity] = calcJaccardTrabecular(actualV, predictedV, shapeM
     %% Calculate Jaccard similarity    
 
     %Set ggremesh options structure
-    opts.nb_pts = length(shapeModel.meanPoints); %Set desired number of points
+    opts.nb_pts = length(actualV); %Set desired number of points
     opts.disp_on = 0; % Turn off command window text display
 
     %Fix surfaces to ensure appropriate meshing
     %Actual
-    [actualF, actualV] = mergeVertices(shapeModel.F, actualV);
+    [actualF, actualV] = mergeVertices(shapeModel.F2, actualV);
     [actualF, actualV] = ggremesh(actualF, actualV, opts);
     %Predicted
-    [predictedF, predictedV] = mergeVertices(shapeModel.F, predictedV);
+    [predictedF, predictedV] = mergeVertices(shapeModel.F2, predictedV);
     [predictedF, predictedV] = ggremesh(predictedF, predictedV, opts);
 
     %Find interior point
