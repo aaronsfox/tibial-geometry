@@ -50,6 +50,14 @@ subFolders = f(dirFlags);
 %Get only the folder names into a cell array.
 caseID = {subFolders(3:end).name}; %Start at 3 to skip . and ..
 
+%Set reference case number
+refCase = '147211';
+
+%Reorder case list to make target mesh first
+caseID = [caseID(find(contains(caseID, refCase))), ...
+    caseID(1:find(contains(caseID, refCase))-1), ...
+    caseID(find(contains(caseID, refCase))+1:end)];
+
 %Set options for remeshing
 optionStruct_tib.nb_pts = 3500; %Set desired number of points
 optionStruct_tib.disp_on = 0; % Turn off command window text display
@@ -83,14 +91,6 @@ varExpThreshold = 95;
 
 %Check flag
 if registerSurfaces
-
-    %Set reference case number
-    refCase = '147211';
-
-    %Reorder case list to make target mesh first
-    caseID = [caseID(find(contains(caseID, refCase))), ...
-        caseID(1:find(contains(caseID, refCase))-1), ...
-        caseID(find(contains(caseID, refCase))+1:end)];
 
     %Remesh and align all cases
 
@@ -1254,6 +1254,62 @@ end
 
 %Save the shape model data
 save('tibTrabShapeModel.mat', 'tibTrabShapeModel');
+
+%Export the shape model surface mean
+%Tibia
+stlStructTibMean.solidNames = {'tibTrabShapeModel_meanTib'}; %names of parts
+stlStructTibMean.solidVertices = {tibTrabShapeModel.meanPoints(1:optionStruct_tib.nb_pts,:)}; %Vertices
+stlStructTibMean.solidFaces = {tibTrabShapeModel.F1}; %Faces
+stlStructTibMean.solidNormals={[]};
+%Trabecular
+stlStructTrabMean.solidNames = {'tibTrabShapeModel_meanTrab'}; %names of parts
+stlStructTrabMean.solidVertices = {tibTrabShapeModel.meanPoints(optionStruct_tib.nb_pts+1:end,:)}; %Vertices
+stlStructTrabMean.solidFaces = {tibTrabShapeModel.F2}; %Faces
+stlStructTrabMean.solidNormals={[]};
+
+%Export STLs
+export_STL_txt('tibTrabShapeModel_meanTib.stl', stlStructTibMean);
+export_STL_txt('tibTrabShapeModel_meanTrab.stl', stlStructTrabMean);
+
+%Return to base shape model directory
+cd('..');
+
+%% Examine relationships between model PC1's and height/mass
+
+%Read in participant height/mass characteristics
+caseCharacteristics = readtable('..\Data\participant-characteristics.csv');
+
+%Extract the three shape model PC1 component scores and the associated
+%height and mass for these cases
+for ii = 1:length(caseID)
+    
+    %Identify the height and mass for current case
+    %Get the case number isolated
+    caseNo = strsplit(caseID{ii},'-');
+    caseNo = str2double(caseNo{2});
+    %Identify the table row for this case
+    tableInd = find(caseCharacteristics.deidentified_record_number == caseNo);
+    
+    %Extract the height and mass for the case
+    height(ii,1) = caseCharacteristics.Height(tableInd);
+    mass(ii,1) = caseCharacteristics.Weight(tableInd);
+    
+    %Extract the principal components for the case from each of the models
+    %In order of tibia, tibia-fibula, tibia-trabecular
+    PC1s(ii,1) = tibiaShapeModel.score(ii,1);
+    PC1s(ii,2) = tibiaFibulaShapeModel.score(ii,1);
+    PC1s(ii,3) = tibTrabShapeModel.score(ii,1);
+    
+end
+
+%Create regression models of height and mass against the PC1 scores
+for modelInd = 1:size(PC1s,2)
+    heightMassMdl{modelInd} = fitlm([height, mass], PC1s(:,modelInd));
+end
+
+% % % %Print out model summaries
+% % % heightMassMdl{3}
+% % % plot(heightMassMdl{1})
 
 %% Trabecular (tibia) shape model ***OLD VERSION OF TRABECULAR ONLY***
 
