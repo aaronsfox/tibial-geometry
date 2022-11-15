@@ -685,7 +685,7 @@ xlabel('Participants'); ylabel('Jaccard Index (0-1)'); title('Jaccard Similarity
 %Remove ticks
 ax = gca(); ax.XTick = [];
 %Export summary figure
-export_fig('figures\errorSummary\errorSummaryFigure.png','-m2');
+export_fig('figures\errorSummary\errorSummaryFigure.png','-m5');
 close(hfErr);
 
 %This function can be used to examine the shape effect of a principal
@@ -930,7 +930,7 @@ xlabel('Participants'); ylabel('Jaccard Index (0-1)'); title('Jaccard Similarity
 %Remove ticks
 ax = gca(); ax.XTick = [];
 %Export summary figure
-export_fig('figures\errorSummary\errorSummaryFigure.png','-m2');
+export_fig('figures\errorSummary\errorSummaryFigure.png','-m5');
 close(hfErr);
 
 %This function can be used to examine the shape effect of a principal
@@ -1231,7 +1231,7 @@ xlabel('Participants'); ylabel('Jaccard Index (0-1)'); title('Jaccard Similarity
 %Remove ticks
 ax = gca(); ax.XTick = [];
 %Export summary figure
-export_fig('figures\errorSummary\errorSummaryFigure.png','-m2');
+export_fig('figures\errorSummary\errorSummaryFigure.png','-m5');
 close(hfErr);
 
 %This function can be used to examine the shape effect of a principal
