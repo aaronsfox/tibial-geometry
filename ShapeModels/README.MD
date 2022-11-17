@@ -2,7 +2,7 @@
 
 *We recommend downloading a Markdown reader like [Typora](https://typora.io/) to view the readme files within this dataset.*
 
-This folder contains the shape model data for the three models included with our paper and dataset, those being — (1) tibia; (2) tibia and fibula; and (3) tibial trabecular. Below outlines the details of the files and folders included with each shape model.
+This folder contains the shape model data for the three models included with our paper and dataset, those being — (1) tibia; (2) tibia and fibula; (3) tibia plus trabecular; and (4) trabecular alone. Below outlines the details of the files and folders included with each shape model.
 
 ## {model}ShapeModel.mat
 

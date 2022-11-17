@@ -35,7 +35,7 @@ The [shape models](ShapeModels) folder contains all data associated with the sta
 The [data](data) folder contains one file — *registeredSurfaceDataPoints.mat* — a file that contains the three-dimensional point data of the bone surfaces used to create the statistical shape models. The process of registering the points from the original surfaces is time-consuming, hence we have saved and included this file here for those who wish to re-create the shape models but avoid this computationally expensive step. This can be loaded into MATLAB using the basic command:
 
 ```matlab
-load('registerdSurfaceDataPoints.mat')
+load('registeredSurfaceDataPoints.mat')
 ```
 
 ## Examples
@@ -43,5 +43,5 @@ load('registerdSurfaceDataPoints.mat')
 This dataset and associated statistical shape models can be used in several ways to assist with skeletal focused research of the tibia-fibula. We do not have the scope to highlight each and every potential application, however have provided a series of example cases of where and how the shape models may be used. Our hope is that these examples can be directly used, or assist in guiding other uses.
 
 - **[Case 1: Generating Surface Samples](Examples/case1)** — this example case demonstrates how to use the shape model data to reconstruct a randomly sampled 'population' of surfaces.
-- **[Case 2: Predicting and Generating Trabecular Volumes](Examples/case2)** — this example case demonstrates how to combine the tibia and trabecular shape models to predict and generate the trabecular volume from a tibial surface.
+- **[Case 2: Predicting and Generating Trabecular Volumes](Examples/case2)** — this example case demonstrates how to use the tibia-trabecular shape model to predict and generate the trabecular volume from a tibial surface.
 - **[Case 3: Generating Tibia-Fibula Surfaces from Landmarks](Examples/case3)** — this example case demonstrates how to use the tibia-fibula shape model to estimate and reconstruct surfaces from palpable landmarks on the tibia and fibula.
