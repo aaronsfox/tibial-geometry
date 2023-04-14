@@ -20,7 +20,7 @@ function [reconstructed] = simulatedPopulation(nSamples, shapeModel, selectPCs, 
     %
     %   Function inputs:
     %       nSamples        the desired number of sample surfaces to generate
-    %       shapeModel      a structure with the pre-loaded shape mode
+    %       shapeModel      a structure with the pre-loaded shape model
     %       selectPCs       a boolean array matching up to the PCs to
     %                       reconstruct the surface from. This can be a
     %                       maximum length of the number of total PCs
@@ -91,7 +91,7 @@ function [reconstructed] = simulatedPopulation(nSamples, shapeModel, selectPCs, 
             error('Shape model structure must have a field representing the shape model nodes mean.')
         end
         if opts.exportSTL || opts.exportIMG
-            if ~isfield(shapeModel,'F')
+            if ~isfield(shapeModel,'F') && ~isfield(shapeModel,'F1') %extra check for two part shape model
                 error('Shape model structure must have representative faces to generate STL and/or image.')
             end
         end
@@ -139,6 +139,13 @@ function [reconstructed] = simulatedPopulation(nSamples, shapeModel, selectPCs, 
         if ~isfield(opts,'labelsOnIMG')
             opts.labelsOnIMG = true;
         end
+    end
+
+    %Check for multi-part shape model
+    if isfield(shapeModel,'F')
+        multiPart = false;
+    elseif isfield(shapeModel,'F1')
+        multiPart = true;
     end
     
     %% Set-up
@@ -198,14 +205,37 @@ function [reconstructed] = simulatedPopulation(nSamples, shapeModel, selectPCs, 
         %Loop through the samples
         for sampleInd = 1:nSamples
             
-            %Create stl structure
-            stlStruct.solidNames = {['simulatedSurface_',num2str(sampleInd)]}; %names of parts
-            stlStruct.solidVertices = {reconstructed(:,:,sampleInd)}; %Vertices
-            stlStruct.solidFaces = {shapeModel.F}; %Faces
-            stlStruct.solidNormals={[]};
-            
-            %Export the STL
-            export_STL_txt(['stl\simulatedSurface_',num2str(sampleInd),'.stl'], stlStruct);
+            %Conditional for multi-part
+            if multiPart
+
+                %Create stl structure for cortical 
+                stlStruct1.solidNames = {['simulatedSurface_',num2str(sampleInd)]}; %names of parts
+                stlStruct1.solidVertices = {reconstructed(1:length(reconstructed)/2,:,sampleInd)}; %Vertices
+                stlStruct1.solidFaces = {shapeModel.F1}; %Faces %cant have two solid faces...... 
+                stlStruct1.solidNormals={[]};
+                
+                %Create STL structure for trabecular
+                stlStruct2.solidNames = {['simulatedSurface_',num2str(sampleInd)]}; %names of parts
+                stlStruct2.solidVertices = {reconstructed(length(reconstructed)/2+1:end,:,sampleInd)}; %Vertices
+                stlStruct2.solidFaces = {shapeModel.F2};%Faces
+                stlStruct2.solidNormals={[]};
+                
+                %Export the STLs
+                export_STL_txt(['stl\simulatedCorticalSurface_',num2str(sampleInd),'.stl'], stlStruct1);                
+                export_STL_txt(['stl\simulatedTrabecularSurface_',num2str(sampleInd),'.stl'], stlStruct2);
+
+            else
+                
+                %Create stl structure
+                stlStruct.solidNames = {['simulatedSurface_',num2str(sampleInd)]}; %names of parts
+                stlStruct.solidVertices = {reconstructed(:,:,sampleInd)}; %Vertices
+                stlStruct.solidFaces = {shapeModel.F}; %Faces
+                stlStruct.solidNormals={[]};
+                
+                %Export the STL
+                export_STL_txt(['stl\simulatedSurface_',num2str(sampleInd),'.stl'], stlStruct);
+
+            end
 
             %Update waitbar
             waitbar(sampleInd/nSamples, wbar);
@@ -259,24 +289,60 @@ function [reconstructed] = simulatedPopulation(nSamples, shapeModel, selectPCs, 
                 %Calculate point error distance
                 errorDist = distancePoints3d(shapeModel.meanPoints, reconstructed(:,:,sampleInd));
                 
-                %Convert distance error to colour scales for visualisation
-                errorDistColF = vertexToFaceMeasure(shapeModel.F, errorDist);
-                errorDistColV = faceToVertexMeasure(shapeModel.F, shapeModel.meanPoints, errorDistColF);
-                
-                %Add surface with heatmap colouring
-                hp = gpatch(shapeModel.F, reconstructed(:,:,sampleInd), ...
-                    errorDistColV, 'none', 1);
+                %Conditional for multi-part
+                if multiPart
 
-                %Interpolate colouring for smoothness
-                hp.FaceColor = 'Interp'; colormap viridis
-                
-       
-                                
+                    %Convert distance error to colour scales for visualisation
+                    %F1 (first half of set)
+                    errorDistColF1 = vertexToFaceMeasure(shapeModel.F1, errorDist(1:length(reconstructed)/2));
+                    errorDistColV1 = faceToVertexMeasure(shapeModel.F1, shapeModel.meanPoints(1:length(reconstructed)/2,:), errorDistColF1);
+                    %F2 (second half of set)
+                    errorDistColF2 = vertexToFaceMeasure(shapeModel.F2, errorDist(length(reconstructed)/2+1:end));
+                    errorDistColV2 = faceToVertexMeasure(shapeModel.F2, shapeModel.meanPoints(length(reconstructed)/2+1:end,:), errorDistColF2);
+                    
+                    %Add surface with heatmap colouring
+                    hp1 = gpatch(shapeModel.F1, reconstructed(1:length(reconstructed)/2,:,sampleInd), ...
+                        errorDistColV1, 'none', 0.3);
+                    hp2 = gpatch(shapeModel.F2, reconstructed(length(reconstructed)/2+1:end,:,sampleInd), ...
+                        errorDistColV2, 'none', 1);
+    
+                    %Interpolate colouring for smoothness
+                    hp1.FaceColor = 'Interp'; colormap viridis
+                    hp2.FaceColor = 'Interp'; colormap viridis
+
+                else
+
+                    %Convert distance error to colour scales for visualisation
+                    errorDistColF = vertexToFaceMeasure(shapeModel.F, errorDist);
+                    errorDistColV = faceToVertexMeasure(shapeModel.F, shapeModel.meanPoints, errorDistColF);
+                    
+                    %Add surface with heatmap colouring
+                    hp = gpatch(shapeModel.F, reconstructed(:,:,sampleInd), ...
+                        errorDistColV, 'none', 1);
+    
+                    %Interpolate colouring for smoothness
+                    hp.FaceColor = 'Interp'; colormap viridis
+
+                end
+
             else
-                
-                %Add surface with bone colouring
-                hp = gpatch(shapeModel.F, reconstructed(:,:,sampleInd), ...
-                    '#e3dac9', 'none', 1);
+
+                %Conditional for multi-part
+                if multiPart
+
+                    %Add surface with bone colouring
+                    hp1 = gpatch(shapeModel.F1, reconstructed(1:length(reconstructed)/2,:,sampleInd), ...
+                        '#e3dac9', 'none', 0.3);
+                    hp2 = gpatch(shapeModel.F2, reconstructed(length(reconstructed)/2+1:end,:,sampleInd), ...
+                        '#e3dac9', 'none', 1);
+
+                else
+                                    
+                    %Add surface with bone colouring
+                    hp = gpatch(shapeModel.F, reconstructed(:,:,sampleInd), ...
+                        '#e3dac9', 'none', 1);
+
+                end
               
                 
             end
@@ -285,7 +351,12 @@ function [reconstructed] = simulatedPopulation(nSamples, shapeModel, selectPCs, 
             %Set axis view
             axis equal; axis tight;
             view(0,90); 
-            rotate(hp,[0 1 0], -90)
+            if multiPart
+                rotate(hp1,[0 1 0], -90)
+                rotate(hp2,[0 1 0], -90)
+            else
+                rotate(hp,[0 1 0], -90)
+            end
             camlight headlight
             
             %Set axis limits
